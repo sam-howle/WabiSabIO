@@ -21,6 +21,16 @@ pip install .
 
 `wabisabio` offers 3 main functions: mouse movement to an `X, Y` pixel coordinate, `X, Y` coordinate randomization within a range, and randomized timing delays. Coordinate & timing randomization is done on a gaussian/normal distribution, which creates a center-biased grouping (the same way a human would).
 
+| Function    | Description |
+| ----------- | ----------- |
+| `move_mouse(dest_x, dest_y)`  | Move mouse from current position to the supplied `(x, y)` screen coordinates taking a curved path    |
+| `press_key(key)` | Presses the supplied key and releases after a short, randomized delay       |
+| `left_click()` | performs a left click and releases after a short, randomized delay        |
+| `right_click()` | performs a right click and releases after a short, randomized delay        |
+| `lagged_press_key(key)` | Same as `press_key()`, but with randomized delays before and/or after the event        |
+| `lagged_left_click()` | Same as `left_click()`, but with randomized delays before and/or after the event       |
+| `lagged_right_click()` | Same as `right_click()`, but with randomized delays before and/or after the event       |
+
 ### Mouse Movement
 
 Mouse movement is performed using the `move_mouse()` function. It works by moving along a precalculated curve starting at the mouse cursor's current position:
