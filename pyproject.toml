@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wabisabio"
+version = "0.1.0"
+description = "Human-like input automation framework for Windows"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Sam Howle", email = "samhowle@protonmail.com"}
+]
+dependencies = [
+    "numpy>=2.0",
+    "scanput",
+]
+classifiers = [
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Libraries",
+]
+
+[tool.setuptools]
+py-modules = ["wabisabio"]
