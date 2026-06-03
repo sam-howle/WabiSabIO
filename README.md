@@ -36,6 +36,6 @@ destination_y = 300
 move_mouse(destination_x, destination_y)
 ```
 #### Optional parameters
-* **`speed_multiplier`** `float` - used to modify mouse movement speed. A value of `1.2` will be 20% faster (120% speed), whereas a value of `0.35` will travel at a rate of 35% speed. Note that deviating too far from the default value of `1.0` may produce visually unnatural movement.
+* **`speed_multiplier`** `float` - used to modify mouse movement speed. A value of `1.2` will be 20% faster (120% speed), whereas a value of `0.35` will travel at a rate of 35% speed. Note that deviating too far from the default value of `1.0` may produce visually unnatural movement. Also take note that you **do not** need to modify speed based on the total distance traveled from the current cusor position -> final cursor destination - this scales automatically within the function itself, as humans have a natural tendency to favor slow movements for short distances, and fast movements for long distances.
 * **`mouse_hz`** `int` - how often the simulated mouse is 'polled'. This will only affect the total amount of points the cursor travels to along the movement curve, not the speed at which it travels. It is recommended to only use common mouse polling rates such as `125`, `250`, `500` and `1000`. Only supply this parameter if you know what you're doing.
 
