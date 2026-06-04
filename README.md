@@ -24,12 +24,19 @@ pip install .
 | Function    | Description |
 | ----------- | ----------- |
 | `move_mouse(dest_x, dest_y)`  | Move mouse from current position to the supplied `(x, y)` screen coordinates taking a curved path    |
-| `press_key(key)` | Presses the supplied key and releases after a short, randomized delay       |
+| `press_key(key)` | Presses the supplied `key` and releases after a short, randomized delay       |
 | `left_click()` | performs a left click and releases after a short, randomized delay        |
 | `right_click()` | performs a right click and releases after a short, randomized delay        |
 | `lagged_press_key(key)` | Same as `press_key()`, but with randomized delays before and/or after the event        |
 | `lagged_left_click()` | Same as `left_click()`, but with randomized delays before and/or after the event       |
 | `lagged_right_click()` | Same as `right_click()`, but with randomized delays before and/or after the event       |
+| `randomize_coordinate_within_range(x, y, radius_x, radius_y)` | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` screen coordinates of an area-of-interest (e.g., a UI button), as well as an `x` and `y` "radius" (total pixels from center on the `x` and `y` axises, respectively) |
+| `randomize_coordinate_within_square(x, y, radius)` | Same as `randomize_coordinate_within_range()`, but intended for use on square-shaped UI elements where the `x` and `y` distance from center are equal. Only has one required `radius` input parameter as a result. |
+| `start_jitter()` | Causes mouse cursor to periodically 'jitter' back and forth 1-3 pixels, similar to the way a human hand resting on a physical mouse would behave. Shares a mouse-control mutex with `move_mouse()` will not interfere with it as a result. Does not need to be disabled to call `move_mouse()` and will automatically resume after the cursor is no longer in-motion. Idle jitter continues indefinately unless `stop_jtter()` is called|
+| `stop_jitter()` | Disables jitter thread. `start_jitter()` needs be called again if you wish to resume idle mouse jitter. |
+| `rsleep(min_time, max_time)` | Delays script execution for a random duration between the `min_time` and `max_time` value. Sleep values are randomized over a clamped gaussian distribution, causing center-values to be more common. | 
+| `resleep(min_time)` | Calling `rsleep()` with just the `min_time` input parameter sets the max time to be 40% higher than the supplied payment. |
+
 
 ### Mouse Movement
 
