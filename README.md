@@ -1,7 +1,7 @@
 # WabiSabIO
 "Perfect" your input automation through injected imperfections
 
-`wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features pixel coordinate & timing delay randomization done using (clamped) gaussian distributions, human-like mouse movement curves that closely mimick the way a human hand would control a mouse (and idle mouse jitter to go with it).
+`wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features pixel coordinate & timing delay randomization done using (clamped) gaussian distributions, human-like mouse movement curves that closely mimic the way a human hand would control a mouse (and idle mouse jitter to go with it).
 
 The library utilizes the [scanput](https://github.com/sam-howle/scanput) `sendInput` wrapper which sends inputs via hardware scan codes.
 
@@ -21,38 +21,268 @@ pip install .
 
 `wabisabio` offers 3 main functions: mouse movement to an `X, Y` pixel coordinate, `X, Y` coordinate randomization within a range, and randomized timing delays. Coordinate & timing randomization is done on a gaussian/normal distribution, which creates a center-biased grouping (the same way a human would).
 
-| Function    | Description |
-| ----------- | ----------- |
-| `move_mouse(dest_x, dest_y)`  | Move mouse from current position to the supplied `(x, y)` screen coordinates taking a curved path    |
-| `press_key(key)` | Presses the supplied `key` and releases after a short, randomized delay       |
-| `left_click()` | performs a left click and releases after a short, randomized delay        |
-| `right_click()` | performs a right click and releases after a short, randomized delay        |
-| `lagged_press_key(key)` | Same as `press_key()`, but with randomized delays before and/or after the event        |
-| `lagged_left_click()` | Same as `left_click()`, but with randomized delays before and/or after the event       |
-| `lagged_right_click()` | Same as `right_click()`, but with randomized delays before and/or after the event       |
-| `randomize_coordinate_within_range(x, y, radius_x, radius_y)` | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` screen coordinates of an area-of-interest (e.g., a UI button), as well as an `x` and `y` "radius" (total pixels from center on the `x` and `y` axises, respectively) |
-| `randomize_coordinate_within_square(x, y, radius)` | Same as `randomize_coordinate_within_range()`, but intended for use on square-shaped UI elements where the `x` and `y` distance from center are equal. Only has one required `radius` input parameter as a result. |
-| `start_jitter()` | Causes mouse cursor to periodically 'jitter' back and forth 1-3 pixels, similar to the way a human hand resting on a physical mouse would behave. Shares a mouse-control mutex with `move_mouse()` will not interfere with it as a result. Does not need to be disabled to call `move_mouse()` and will automatically resume after the cursor is no longer in-motion. Idle jitter continues indefinately unless `stop_jtter()` is called|
-| `stop_jitter()` | Disables jitter thread. `start_jitter()` needs be called again if you wish to resume idle mouse jitter. |
-| `rsleep(min_time, max_time)` | Delays script execution for a random duration between the `min_time` and `max_time` value. Sleep values are randomized over a clamped gaussian distribution, causing center-values to be more common. | 
-| `resleep(min_time)` | Calling `rsleep()` with just the `min_time` input parameter sets the max time to be 40% higher than the supplied payment. |
+| Function | Description |
+  | --- | --- |
+  | `move_mouse(dest_x, dest_y)` | Move mouse from current position to the supplied `(x, y)` screen coordinates taking a curved path |
+  | `press_key(key)` | Presses the supplied `key` and releases after a short, randomized delay |
+  | `left_click()` | Performs a left click and releases after a short, randomized delay |
+  | `right_click()` | Performs a right click and releases after a short, randomized delay |
+  | `lagged_press_key(key)` | Same as `press_key()`, but with randomized delays before and/or after the event |
+  | `lagged_left_click()` | Same as `left_click()`, but with randomized delays before and/or after the event |
+  | `lagged_right_click()` | Same as `right_click()`, but with randomized delays before and/or after the event |
+  | `modifier_key_press(modifier, key)` | Presses one or more modifier keys (e.g. `"shift"`, `"ctrl"`), then presses `key`, then releases all in reverse order with randomized delays between each event |
+  | `modifier_left_click(modifier)` | Same as `left_click()`, but holds one or more modifier keys for the duration of the click |
+  | `modifier_right_click(modifier)` | Same as `right_click()`, but holds one or more modifier keys for the duration of the click |
+  | `type_string(input_string)` | Types the supplied string character by character with human-like inter-key delays. Handles shift-required characters and special keys (`\n`, `\t`, `\b`) automatically |
+  | `toggle_key_preflight_check()` | Ensures toggle keys (CapsLock, ScrollLock, NumLock) are in the desired state before automation begins. Defaults to all off. |
+  | `randomize_coordinate_within_range(x, y, radius_x, radius_y)` | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` and an `x` and `y` radius (total pixels from center on each axis) |
+  | `randomize_coordinate_within_square(x, y, radius)` | Same as `randomize_coordinate_within_range()`, but for square-shaped UI elements where `x` and `y` radii are equal |
+  | `clamped_gauss_randint(min_int, max_int)` | Returns a gaussian-distributed random integer clamped to `[min_int, max_int]`. Center values are more probable than edge values |
+  | `clamped_gauss_randfloat(min_val, max_val)` | Same as `clamped_gauss_randint()`, but returns a float |
+  | `start_jitter()` | Causes the mouse cursor to periodically jitter 1-3 pixels, simulating a human hand resting on a mouse. Shares a mutex with `move_mouse()` and will not interfere with it. Resumes automatically after movement completes. Runs indefinitely until `stop_jitter()` is called |
+  | `stop_jitter()` | Disables the jitter thread. Call `start_jitter()` again to resume |
+  | `rsleep(min_time, max_time)` | Delays execution for a random duration between `min_time` and `max_time` over a clamped gaussian distribution, making center values more common |
+  | `rsleep(min_time)` | When called with only `min_time`, the max sleep duration is automatically set to 40% above the supplied value |
 
 
 ### Mouse Movement
 
-Mouse movement is performed using the `move_mouse()` function. It works by moving along a precalculated curve starting at the mouse cursor's current position:
-```python
-move_mouse(dest_x, dest_y, speed_multiplier=1.0, mouse_hz=500, speed_sigmas_to_edge=3, speed_bias=0.0)
-```
-Example:
-```python
-destination_x = 750
-destination_y = 300
+  Mouse movement is performed using the `move_mouse()` function. It moves the cursor along a procedurally generated curve starting at the cursor's current position:
 
-# Move mouse to (x,y) coordinate (750,300)
-move_mouse(destination_x, destination_y)
-```
-#### Optional parameters
-* **`speed_multiplier`** `float` - used to modify mouse movement speed. A value of `1.2` will be 20% faster (120% speed), whereas a value of `0.35` will travel at a rate of 35% speed. Note that deviating too far from the default value of `1.0` may produce visually unnatural movement. Also take note that you **do not** need to modify speed based on the total distance traveled from the current cusor position -> final cursor destination - this scales automatically within the function itself, as humans have a natural tendency to favor slow movements for short distances, and fast movements for long distances.
-* **`mouse_hz`** `int` - how often the simulated mouse is 'polled'. This will only affect the total amount of points the cursor travels to along the movement curve, not the speed at which it travels. It is recommended to only use common mouse polling rates such as `125`, `250`, `500` and `1000`. Only supply this parameter if you know what you're doing.
+  ```python
+  move_mouse(dest_x, dest_y, speed_multiplier=1.0, mouse_hz=500, speed_sigmas_to_edge=3, speed_bias=0.0, jitter_intensity=10)
+  ```
 
+  ```python
+  # Move mouse to (750, 300)
+  move_mouse(750, 300)
+  ```
+
+  #### Optional parameters
+  * **`speed_multiplier`** `float` - Scales mouse movement speed. A value of `1.2` is 20% faster, `0.5` is half speed. Note that deviating too far from the default of `1.0` may produce visually unnatural
+  movement. You do not need to account for travel distance - the function automatically scales speed relative to distance, as humans naturally move slower for short distances and faster for long ones.
+  * **`mouse_hz`** `int` - Simulated mouse polling rate. Affects how many points the cursor visits along the movement curve, not the speed of travel. Stick to common polling rates: `125`, `250`, `500`,
+  `1000`. Only supply this if you know what you are doing.
+  * **`jitter_intensity`** `int` - Controls the intensity of per-point micro-noise applied to the movement curve, simulating natural hand tremor. Higher values produce more visible noise. The noise is
+  angle-aligned to the direction of travel at each point, so it looks physically natural rather than random. Scales automatically with movement distance and speed.
+  * **`speed_sigmas_to_edge`** `float` - Controls how tightly the randomized speed clusters around the center of the speed range. Higher values produce less variance. See `clamped_gauss_randfloat()` for a
+  detailed explanation.
+  * **`speed_bias`** `float` - Biases the randomized speed toward the faster or slower end of the range. Accepts values between `-1.0` (bias toward slow) and `1.0` (bias toward fast).
+
+### Keyboard Input
+  
+  #### Key Press
+
+  ```python
+  press_key(key, sigmas_to_edge=3, bias=0.0)
+  ```
+
+  ```python
+  # Press the 'e' key
+  press_key('e')
+
+  # Press the F5 key
+  press_key('f5')
+  ```
+
+  #### Optional parameters
+
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized key hold duration clusters around the center of the hold range. Higher values produce less variance. See `clamped_gauss_randfloat()`
+  for a detailed explanation.
+
+  * **`bias`** `float` - Biases the randomized hold duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
+
+  ---
+
+  #### Lagged Key Press
+
+  Same as `press_key()`, but with randomized delays before and/or after the keypress event. Useful for simulating reaction time before a keypress, or a natural pause after.
+
+  ```python
+  lagged_press_key(key, prelag=0.1, postlag=0.1, sigmas_to_edge=3, bias=0.0, prelag_sigmas_to_edge=3, prelag_bias=0.0, postlag_sigmas_to_edge=3, postlag_bias=0.0)
+  ```
+
+  ```python
+  # Press 'e' with default pre and post delays
+  lagged_press_key('e')
+
+  # Press 'e' with a custom pre-delay range of 0.2 to 0.5 seconds
+  lagged_press_key('e', prelag=(0.2, 0.5))
+
+  # Press 'e' with no post-delay
+  lagged_press_key('e', postlag=None)
+  ```
+
+  #### Optional parameters
+
+  * **`prelag`** `float | tuple[float, float] | None` - Delay before the keypress. A single float sets the minimum, with max automatically set 0.1 seconds higher. A tuple sets an explicit `(min, max)`
+  range. Pass `None` to disable.
+  * **`postlag`** `float | tuple[float, float] | None` - Delay after the keypress. Behaves identically to `prelag`.
+  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See `clamped_gauss_randfloat()`.
+  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See `clamped_gauss_randfloat()`.
+
+  ---
+
+  #### Modifier Key Press
+
+  Presses one or more modifier keys, then presses the target key, then releases everything in reverse order with randomized delays between each event.
+
+  ```python
+  modifier_key_press(modifier, key, min_time=0.03, max_time=0.08, sigmas_to_edge=3, bias=0.0)
+  ```
+
+  ```python
+  # Ctrl+C
+  modifier_key_press('ctrl', 'c')
+
+  # Ctrl+Shift+T
+  modifier_key_press(['ctrl', 'shift'], 't')
+  ```
+
+  #### Optional parameters
+
+  * **`min_time`** / **`max_time`** `float` - The minimum and maximum delay between each modifier down, key press, and modifier up event.
+  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See `clamped_gauss_randfloat()`.
+
+  ---
+
+  #### Type String
+
+  Types a string character by character with human-like inter-key delays. Handles shift-required characters (`!`, `@`, `#`, etc.) and special keys (`\n`, `\t`, `\b`) automatically. CapsLock state is not accounted for. Use `toggle_key_preflight_check()` to ensure it is off before calling if needed.
+
+  ```python
+  type_string(input_string, speed_multiplier=1.0, sleep_sigmas_to_edge=3, sleep_bias=0.0, hold_sigmas_to_edge=3, hold_bias=0.0)
+  ```
+
+  ```python
+  type_string("Hello, world!")
+  type_string("search query\n")
+  ```
+
+  #### Optional parameters
+  * **`speed_multiplier`** `float` - Scales the inter-key delay. A value of `1.2` types 20% faster, `0.5` types at half speed.
+  * **`sleep_sigmas_to_edge`** / **`sleep_bias`** - Controls the distribution of the delay between keystrokes.
+  * **`hold_sigmas_to_edge`** / **`hold_bias`** - Controls the distribution of the key hold duration.
+
+  ---
+
+  #### Toggle Key Preflight Check
+
+  Ensures toggle keys are in the desired state before automation begins. Useful to call at the start of a script to guarantee a known keyboard state.
+
+  ```python
+  toggle_key_preflight_check(capslock=False, scrolllock=False, numlock=False)
+  ```
+
+  ```python
+  # Ensure CapsLock and NumLock are off before starting
+  toggle_key_preflight_check(capslock=False, numlock=False)
+  ```
+
+### Idle Mouse Behavior
+
+  When a human hand rests on a mouse, it naturally produces small involuntary movements. `start_jitter()` replicates this behavior by periodically nudging the cursor 1-3 pixels in a random direction while
+  idle.
+
+  ```python
+  start_jitter()
+  stop_jitter()
+  ```
+
+  ```python
+  # Start idle jitter at the beginning of your script
+  start_jitter()
+
+  # ... automation code ...
+
+  # Stop jitter when done
+  stop_jitter()
+  ```
+
+  `start_jitter()` and `move_mouse()` share a mutex, so jitter will never interfere with an in-progress mouse movement and will automatically resume once the cursor is no longer in motion. You do not need
+  to call `stop_jitter()` before calling `move_mouse()`.
+
+  `stop_jitter()` permanently disables the jitter thread until `start_jitter()` is called again.
+
+  ---
+
+  ### Coordinate Randomization
+
+  Humans do not click the exact center of a UI element every time. These functions return a gaussian-randomized coordinate within a defined area, useful for picking a natural click target within a button
+  or other UI element.
+
+  ```python
+  randomize_coordinate_within_range(x, y, radius_x, radius_y, sigmas_to_edge_x=3, sigmas_to_edge_y=3, bias_x=0.0, bias_y=0.0)
+  randomize_coordinate_within_square(x, y, radius, sigmas_to_edge=3, bias_x=0.0, bias_y=0.0)
+  ```
+
+  ```python
+  # Randomize a click target within a 40x20 pixel button centered at (500, 300)
+  x, y = randomize_coordinate_within_range(500, 300, 40, 20)
+  move_mouse(x, y)
+  left_click()
+
+  # Same, but for a square element
+  x, y = randomize_coordinate_within_square(500, 300, 30)
+  move_mouse(x, y)
+  left_click()
+  ```
+
+  `randomize_coordinate_within_square()` is a convenience wrapper for `randomize_coordinate_within_range()` for square-shaped elements where the `x` and `y` radii are equal.
+
+  #### Optional parameters
+
+  * **`sigmas_to_edge_x`** / **`sigmas_to_edge_y`** `float` - Controls how tightly the randomized coordinate clusters around the center on each axis. Higher values produce less variance. See `clamped_gauss_randfloat()` for a detailed explanation.
+  * **`bias_x`** / **`bias_y`** `float` - Biases the randomized coordinate toward one side of the area on each axis. Accepts values between `-1.0` and `1.0`.
+
+  ---
+
+  ### Timing Utilities
+
+  #### Random Sleep
+
+  Delays script execution for a randomized duration over a clamped gaussian distribution, making center values more probable than edge values.
+
+  ```python
+  rsleep(min_time, max_time=None, sigmas_to_edge=3, bias=0.0)
+  ```
+
+  ```python
+  # Sleep between 0.5 and 1.5 seconds
+  rsleep(0.5, 1.5)
+
+  # Sleep between 0.5 and 0.7 seconds (max auto-set to 40% above min)
+  rsleep(0.5)
+  ```
+
+  When called with only `min_time`, the max duration is automatically set to 40% above the supplied value.
+
+  #### Optional parameters
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized sleep duration clusters around the center of the range. Higher values produce less variance. See `clamped_gauss_randfloat()` for a
+  detailed explanation.
+  * **`bias`** `float` - Biases the randomized duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
+
+  ---
+
+  ### Statistical Primitives
+
+  These functions underpin all randomization in the library. They return values over a clamped gaussian distribution, meaning results cluster naturally around the center of the supplied range rather than
+  being uniformly distributed. Edge values are possible but rare.
+
+  ```python
+  clamped_gauss_randfloat(min_val, max_val, sigmas_to_edge=3, bias=0.0)
+  clamped_gauss_randint(min_int, max_int, sigmas_to_edge=3, bias=0.0)
+  ```
+
+  ```python
+  # Returns a float between 0.5 and 1.5, center values most likely
+  value = clamped_gauss_randfloat(0.5, 1.5)
+
+  # Returns an integer between 1 and 10, center values most likely
+  value = clamped_gauss_randint(1, 10)
+  ```
+
+  #### Optional parameters
+  * **`sigmas_to_edge`** `float` - Controls the spread of the distribution. Higher values tighten the distribution around the center, making edge values rarer. Lower values flatten it, making edge values
+  more common. Defaults to `3`, meaning the edges of the range sit at 3 standard deviations from the mean.
+  * **`bias`** `float` - Shifts the center of the distribution toward one end of the range. Accepts values between `-1.0` (bias toward minimum) and `1.0` (bias toward maximum). Defaults to `0.0` (no bias).
