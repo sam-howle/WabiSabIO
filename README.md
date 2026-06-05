@@ -151,7 +151,7 @@ pip install .
   Types a string character by character with human-like inter-key delays. Handles shift-required characters (`!`, `@`, `#`, etc.) and special keys (`\n`, `\t`, `\b`) automatically. CapsLock state is not accounted for. Use `toggle_key_preflight_check()` to ensure it is off before calling if needed.
 
   ```python
-  type_string(input_string, speed_multiplier=1.0, sleep_sigmas_to_edge=3, sleep_bias=0.0, hold_sigmas_to_edge=3, hold_bias=0.0)
+  type_string(input_string, speed_multiplier=1.0, sleep_sigmas_to_edge=1.5, sleep_bias=-0.3, hold_sigmas_to_edge=3, hold_bias=0.0)
   ```
 
   ```python
