@@ -87,7 +87,6 @@ def move_mouse(
     jitter_intensity: int = 10
     #intermediate_p: int = 10
 ) -> None:
-    
     # These constants look "pretty good" as a good default speed.
     base_min_steps = 140
     base_max_steps = 224
@@ -167,9 +166,10 @@ def move_mouse(
     # if very short distance with respect to speed, or very low speed, no overshoot. 
     
     if speed_scalar <= 0.05 or (movement_distance_to_screen_res_ratio * speed_scalar < 0.02):
-        for point in full_curve:
-            set_cursor_position(point[0], point[1])
-            time.sleep(mouse_polling_sleep_time)
+        with _mouse_lock:
+            for point in full_curve:
+                set_cursor_position(point[0], point[1])
+                time.sleep(mouse_polling_sleep_time)
         return
     
 
@@ -197,17 +197,18 @@ def move_mouse(
     correction_curve_total_steps = max(1, overshoot_points - 1)
     correction_curve = __compute_de_casteljau_curve( correction_curve_total_steps, correction_p_array)
 
-    for point in full_curve:
-        set_cursor_position(point[0], point[1])
-        time.sleep(mouse_polling_sleep_time)
-    
-    # Hold overshoot.
-    rsleep(0.015, 0.035)
+    with _mouse_lock:
+        for point in full_curve:
+            set_cursor_position(point[0], point[1])
+            time.sleep(mouse_polling_sleep_time)
 
-    # Correct back.
-    for point in correction_curve:
-        set_cursor_position(point[0], point[1])
-        time.sleep(mouse_polling_sleep_time)
+        # Hold overshoot.
+        rsleep(0.015, 0.035)
+
+        # Correct back.
+        for point in correction_curve:
+            set_cursor_position(point[0], point[1])
+            time.sleep(mouse_polling_sleep_time)
 
     
 
@@ -360,26 +361,29 @@ def press_key(key: str | int, sigmas_to_edge: float = 3, bias: float = 0.0) -> N
 
 def type_string(
       input_string: str,
-      sleep_sigmas_to_edge: float = 3,
-      sleep_bias: float = 0.0,
+      sleep_sigmas_to_edge: float = 1.5,
+      sleep_bias: float = -0.3,
       speed_multiplier: float = 1.0,
       hold_sigmas_to_edge: float = 3,
       hold_bias: float = 0.0,
 ) -> None:
     
     min_next_key_delay = 0.02 / speed_multiplier
-    max_next_key_delay = 0.04 / speed_multiplier
-    
+    max_next_key_delay = 0.08 / speed_multiplier
+
     # If a shift_char is typed, we should manually press shift first.
-    # Otherwise, scanput will press shift and the required key simultanously. 
+    # Otherwise, scanput will press shift and the required key simultanously.
     shift_charset='~!@#$%^&*()_+{}|:"<>?'
-    for char in input_string:
-        # Press shift manually for special chars to avoid same-frame modifier+key press quirk of the scanput library.
-        if char in shift_charset:
-            modifier_key_press("shift", char, bias=hold_bias, sigmas_to_edge=hold_sigmas_to_edge)
-        else:
-            press_key(char, bias=hold_bias, sigmas_to_edge=hold_sigmas_to_edge)
-        rsleep(min_next_key_delay, max_next_key_delay, bias=sleep_bias, sigmas_to_edge=sleep_sigmas_to_edge)
+    with _mouse_lock:
+        for char in input_string:
+            # Press shift manually for special chars to avoid same-frame modifier+key press quirk of the scanput library.
+            if char in shift_charset:
+                min_next_key_delay *= 1.1
+                max_next_key_delay *= 1.1
+                modifier_key_press("shift", char, bias=hold_bias, sigmas_to_edge=hold_sigmas_to_edge)
+            else:
+                press_key(char, bias=hold_bias, sigmas_to_edge=hold_sigmas_to_edge)
+            rsleep(min_next_key_delay, max_next_key_delay, bias=sleep_bias, sigmas_to_edge=sleep_sigmas_to_edge)
         
 
 def rsleep(min_time: float, max_time: float | None = None, sigmas_to_edge: float = 3, bias: float = 0.0) -> None:
