@@ -5,6 +5,19 @@
 
 The library utilizes the [scanput](https://github.com/sam-howle/scanput) `sendInput` wrapper which sends inputs via hardware scan codes.
 
+## Introduction
+
+Software-generated keyboard & mouse input automation is extremely fast and accurate. So much so, that any examination of input timings, accuracy, mouse path, etc. would quickly reveal to any observer, human or otherwise, that the input originated from something mechanical. Actors who would prefer to lay low may attempt to conceal this by adding simple randomized input timing, mouse speed & path, and cursor landing location. While this may trick simple overly-consistent behavior detection systems, it still has many issues. For example, why would a user, whose actively attempting to click the center of a UI element clicking the edges of that element just as frequently as the center regions? Why was his mouse movement very slow one moment, the extremely fast the next, and why is it so consistently sporadic? Why is the mouse always traveling in a straight line, or a single arc that never overshoots the destination?
+
+As I pondered this from both the detection and evasion angles, I realized the core problem is that as we make synthetic actions appear more genuine, the computational complexity of doing so also increases. While basic, highly-detectible actions can be scripted in a few minutes using a simple `autohotkey` or `pyautogui` script, creating natural-looking inputs that are nearly indistinguishable from that of a real human require utilizing math in creative (and somewhat) complicated ways.
+
+The core question I wanted to answer was: "Can we make synthetic inputs appear indistinguishable from that of a human's only using some clever tricks and some basic math?" The `wabisabio` library was the result of that research.
+
+### On Human Inconsistency
+
+The (in)accuracy of human actions typically land somewhere on what's called a normal distribution. Also known as a Gaussian distribution or 'bell curve', the normal distribution refers to a statisitical distribution in which the majority of a set of output 
+
+
 ## Installation
 `wabisabio` requiures Python 3.9 or higher.
 ```
