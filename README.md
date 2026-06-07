@@ -15,8 +15,9 @@ The core question I wanted to answer was: "Can we make synthetic inputs appear i
 
 ### On Human Inconsistency
 
-The (in)accuracy of human actions typically land somewhere on what's called a normal distribution. Also known as a Gaussian distribution or 'bell curve', the normal distribution refers to a statisitical distribution in which the majority of a set of output 
+The (in)accuracy of human actions typically land somewhere on what's called a normal distribution. Also known as a Gaussian distribution or 'bell curve', the normal distribution refers to a statisitical distribution in which the majority of a set of output groups towards the center values. If attempting to click a UI element or link, humans will have more inputs appear close to the center than close to the edge. Say an actor got clever and decided to randomize where the click the mouse over an `X, Y` range of pixels that register as a valid input. Input sampling of where these inputs occur would quickly reveal a lack of center-bias (i.e., too many inputs on the edge), and infer that the user was a bot as a result.
 
+If the accuracy and timing of an automated input were instead randomized such that they naturally fit a normal distribution, then detection based on such distribution input analytics quickly becomes difficult. 
 
 ## Installation
 `wabisabio` requiures Python 3.9 or higher.
