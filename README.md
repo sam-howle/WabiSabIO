@@ -1,6 +1,8 @@
 # WabiSabIO
 "Perfect" your input automation through injected imperfections
 
+<img src="demo.gif" width="280">
+
 `wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features pixel coordinate & timing delay randomization done using (clamped) gaussian distributions, human-like mouse movement curves that closely mimic the way a human hand would control a mouse (and idle mouse jitter to go with it).
 
 The library utilizes the [scanput](https://github.com/sam-howle/scanput) `sendInput` wrapper which sends inputs via hardware scan codes.
