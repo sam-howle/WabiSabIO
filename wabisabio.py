@@ -141,7 +141,7 @@ def move_mouse(
 
     # Max total amount of "magnets"
     # longer distances allow more points.
-    max_intermediate_p = max(4, int(movement_distance_to_screen_res_ratio * 60))
+    max_intermediate_p = max(4, int(movement_distance_to_screen_res_ratio * 12))
     intermediate_p = clamped_gauss_randint(1, max_intermediate_p, sigmas_to_edge=2.5, bias=-0.5) # high magnets rare but possible.
 
     # Create correct amount of random points. (indexing at 1 feels more 'true' to the algorithm)
