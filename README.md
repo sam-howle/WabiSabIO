@@ -220,6 +220,33 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   ---
 
+  #### Modifier Click
+
+  Same idea as `modifier_key_press()`, but for mouse buttons. Holds one or more modifier keys for the duration of the click, then releases them in reverse order.
+
+  ```python
+  modifier_left_click(modifier, min_time=0.03, max_time=0.08, sigmas_to_edge=3, bias=0.0)
+  modifier_right_click(modifier, min_time=0.03, max_time=0.08, sigmas_to_edge=3, bias=0.0)
+  ```
+
+  ```python
+  # Shift+click
+  modifier_left_click('shift')
+
+  # Ctrl+right-click
+  modifier_right_click('ctrl')
+
+  # Ctrl+Shift+click
+  modifier_left_click(['ctrl', 'shift'])
+  ```
+
+  #### Optional parameters
+
+  * **`min_time`** / **`max_time`** `float` - The minimum and maximum delay between the modifier down, click, and modifier up events.
+  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See `clamped_gauss_randfloat()`.
+
+  ---
+
   #### Type String
 
   Types a string character by character with human-like inter-key delays. Handles shift-required characters (`!`, `@`, `#`, etc.) and special keys (`\n`, `\t`, `\b`) automatically. CapsLock state is not accounted for. Use `toggle_key_preflight_check()` to ensure it is off before calling if needed.
