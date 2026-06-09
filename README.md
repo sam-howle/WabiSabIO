@@ -1,25 +1,82 @@
 # WabiSabIO
 "Perfect" your input automation through injected imperfections
 
-<img src="demo.gif" width="280">
+`wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features center-biased coordinate and timing randomization, curved mouse movement, destination overshoot and correction, and idle mouse jitter to model the small imperfections that naturally emerge during human interaction.
 
-`wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features pixel coordinate & timing delay randomization done using (clamped) gaussian distributions, human-like mouse movement curves that closely mimic the way a human hand would control a mouse (and idle mouse jitter to go with it).
-
-The library utilizes the [scanput](https://github.com/sam-howle/scanput) `sendInput` wrapper which sends inputs via hardware scan codes.
+<img src="demo.gif" width="320">
+<sub><i>*Fire hydrant image recognition module sold separately.</i></sub>
 
 ## Introduction
 
-Software-generated keyboard & mouse input automation is extremely fast and accurate. So much so, that any examination of input timings, accuracy, mouse path, etc. would quickly reveal to any observer, human or otherwise, that the input originated from something mechanical. Actors who would prefer to lay low may attempt to conceal this by adding simple randomized input timing, mouse speed & path, and cursor landing location. While this may trick simple overly-consistent behavior detection systems, it still has many issues. For example, why would a user, whose actively attempting to click the center of a UI element clicking the edges of that element just as frequently as the center regions? Why was his mouse movement very slow one moment, the extremely fast the next, and why is it so consistently sporadic? Why is the mouse always traveling in a straight line, or a single arc that never overshoots the destination?
+Most keyboard and mouse automation libraries optimize for one thing: reliably interacting with a user interface. The resulting inputs are typically fast, precise, and perfectly repeatable, making them easy to distinguish from those of a real user through even relatively simple behavioral analysis.
 
-As I pondered this from both the detection and evasion angles, I realized the core problem is that as we make synthetic actions appear more genuine, the computational complexity of doing so also increases. While basic, highly-detectible actions can be scripted in a few minutes using a simple `autohotkey` or `pyautogui` script, creating natural-looking inputs that are nearly indistinguishable from that of a real human require utilizing math in creative (and somewhat) complicated ways.
+A common response is to introduce randomness by varying delays, mouse speed, cursor landing location, or path generation. While this reduces consistency, it often produces its own unrealistic behavior. Human input is not uniformly random. Users tend to aim near the center of targets, maintain relatively consistent movement characteristics, occasionally overshoot a destination, and naturally alternate between periods of activity and inactivity.
 
-The core question I wanted to answer was: "Can we make synthetic inputs appear indistinguishable from that of a human's only using some clever tricks and some basic math?" The `wabisabio` library was the result of that research.
+This observation led to an interesting question:
 
-### On Human Inconsistency
+> **How much more human can synthetic input appear using nothing more than a handful of statistical distributions and simple geometric techniques?**
 
-The (in)accuracy of human actions typically land somewhere on what's called a normal distribution. Also known as a Gaussian distribution or 'bell curve', the normal distribution refers to a statisitical distribution in which the majority of a set of output groups towards the center values. If attempting to click a UI element or link, humans will have more inputs appear close to the center than close to the edge. Say an actor got clever and decided to randomize where the click the mouse over an `X, Y` range of pixels that register as a valid input. Input sampling of where these inputs occur would quickly reveal a lack of center-bias (i.e., too many inputs on the edge), and infer that the user was a bot as a result.
+`wabisabio` is an attempt to answer that question.
 
-If the accuracy and timing of an automated input were instead randomized such that they naturally fit a normal distribution, then detection based on such distribution input analytics quickly becomes difficult. 
+Rather than generating deterministic input and injecting randomness afterward, the library models many of the small imperfections that naturally emerge during human interaction. Mouse movement follows Bézier curves with hand tremor, destination overshoot and correction, timing delays are sampled from configurable statistical distributions, and higher-level primitives provide composable building blocks for constructing more natural interaction patterns while remaining lightweight and easy to understand.
+
+### Design Philosophy
+
+Humans are consistent in their inconsistency. 
+
+When interacting with a user interface, people tend to aim near the center of targets, follow consistent movement patterns, occasionally overshoot destinations, and exhibit consistent micro-delays between inputs.
+
+For example, if the valid click region spans 100×100 pixels, a basic automation script might select an `(x, y)` coordinate uniformly at random from that range. While technically randomized, the resulting distribution implies that users click the extreme edges of the button just as frequently as the center.
+
+In practice, people tend to aim for the middle of a target and naturally drift away from it with decreasing frequency. The result is a center-biased distribution rather than a uniform one.
+
+`wabisabio` adopts the same philosophy. Rather than treating randomness as uniformly distributed noise, most of its primitives sample from configurable statistical distributions whose shape, spread, and bias can be adjusted by the caller.
+
+This allows automation to be tuned for a wide variety of interaction styles while avoiding a single fixed behavioral fingerprint.
+
+The heatmaps shown below were generated using 10,000 sampled coordinates from each distribution:
+
+<figure>
+  <img src="DeathBy10000Clicks.png">
+  <figcaption>
+   <i>Uniform sampling (left), center-biased sampling (center), customized center-biased sampling (right)</i>
+  </figcaption>
+</figure>
+
+The following examples generate the three distributions shown above:
+```python
+# Uniform sampling (every valid coordinate is equally likely)
+random_x = random.randint(center_x - radius_x, center_x + radius_x)
+random_y = random.randint(center_y - radius_y, center_y + radius_y)
+
+# Center-biased sampling (default)
+random_x, random_y = wabisabio.randomize_coordinate_within_range(
+    center_x,
+    center_y,
+    radius_x=radius_x,
+    radius_y=radius_y,
+)
+
+# Customized distribution
+random_x, random_y = wabisabio.randomize_coordinate_within_range(
+    center_x,
+    center_y,
+    radius_x=radius_x,
+    radius_y=radius_y,
+    sigmas_to_edge_x=3.6, # Narrower horizontal spread
+    sigmas_to_edge_y=3.6, # Narrower vertical spread
+    bias_x=-0.3,          # Left-biased target selection
+)
+```
+
+While pixel landing coordinate randomization is one of the easiest behaviors to visualize, the same statistical primitives are used throughout the library and can be applied to:
+
+* Micro-delays between actions (e.g., moving a mouse before clicking)
+* Action timing delays
+* Mouse click and keystroke hold durations
+* Mouse movement speed (relative to travel distance)
+* Mouse movement curvature
+* Primitive functions for center-biased randomization
 
 ## Installation
 `wabisabio` requiures Python 3.9 or higher.
@@ -35,7 +92,7 @@ pip install .
 
 ## Usage
 
-`wabisabio` offers 3 main functions: mouse movement to an `X, Y` pixel coordinate, `X, Y` coordinate randomization within a range, and randomized timing delays. Coordinate & timing randomization is done on a gaussian/normal distribution, which creates a center-biased grouping (the same way a human would).
+The following table provides a brief overview of the functions exposed by `wabisabio`:
 
 | Function | Description |
   | --- | --- |
@@ -302,3 +359,30 @@ pip install .
   * **`sigmas_to_edge`** `float` - Controls the spread of the distribution. Higher values tighten the distribution around the center, making edge values rarer. Lower values flatten it, making edge values
   more common. Defaults to `3`, meaning the edges of the range sit at 3 standard deviations from the mean.
   * **`bias`** `float` - Shifts the center of the distribution toward one end of the range. Accepts values between `-1.0` (bias toward minimum) and `1.0` (bias toward maximum). Defaults to `0.0` (no bias).
+
+  ### Lower-level Control
+  While `wabisabio` provides higher-level helpers for common interaction patterns, it also re-exports the underlying `_down` and `_up` primitives from [scanput](https://github.com/sam-howle/scanput). This allows more specialized behavior to be constructed without introducing an additional dependency or import. 
+  
+  These primitives can be freely composed with the rest of the `wabisabio` API. Functions such as `key_down(key)`, `key_up(key)`, `left_down()`, `left_up()`, `right_down()`, and `right_up()` make it easy to implement interaction patterns that extend beyond the built-in helpers.
+  
+  ```python
+from wabisabio import (
+    left_down, # Does not require direct import of scanput
+    left_up,   # Same as above.
+    rsleep,
+    randomize_coordinate_within_range,
+    move_mouse
+)
+
+UI_button_x, UI_button_y = 775, 1010
+UI_radius_x, UI_radius_y = 10, 20
+
+# Click & drag to a specific, randomized coordinate
+left_down()
+rsleep(0.25, 1.15)
+x, y = randomize_coordinate_within_range(UI_button_x, UI_button_y, UI_radius_x, UI_radius_y)
+move_mouse(x, y, speed_multiplier=1.2)
+rsleep(0.1, 0.25)
+left_up()
+```
+
