@@ -74,6 +74,8 @@ While pixel landing coordinate randomization is one of the easiest behaviors to 
 * Mouse movement curvature
 * Primitive functions for center-biased randomization
 
+Together, these primitives provide lightweight, composable building blocks for constructing more natural interaction patterns.
+
 ## Installation
 `wabisabio` requiures Python 3.9 or higher.
 ```
