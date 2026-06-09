@@ -143,6 +143,58 @@ The following table provides a brief overview of the functions exposed by `wabis
   detailed explanation.
   * **`speed_bias`** `float` - Biases the randomized speed toward the faster or slower end of the range. Accepts values between `-1.0` (bias toward slow) and `1.0` (bias toward fast).
 
+### Mouse Clicks
+
+  #### Click
+
+  Performs a left or right click and releases after a short, randomized hold duration.
+
+  ```python
+  left_click(sigmas_to_edge=3, bias=0.0)
+  right_click(sigmas_to_edge=3, bias=0.0)
+  ```
+
+  ```python
+  left_click()
+  right_click()
+  ```
+
+  #### Optional parameters
+
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized hold duration clusters around the center of the hold range. Higher values produce less variance. See `clamped_gauss_randfloat()`.
+  * **`bias`** `float` - Biases the randomized hold duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
+
+  ---
+
+  #### Lagged Click
+
+  Same as `left_click()` / `right_click()`, but with randomized delays before and/or after the click event. Useful for simulating reaction time or a natural pause after clicking.
+
+  ```python
+  lagged_left_click(prelag=0.1, postlag=0.1, sigmas_to_edge=3, bias=0.0, prelag_sigmas_to_edge=3, prelag_bias=0.0, postlag_sigmas_to_edge=3, postlag_bias=0.0)
+  lagged_right_click(prelag=0.1, postlag=0.1, sigmas_to_edge=3, bias=0.0, prelag_sigmas_to_edge=3, prelag_bias=0.0, postlag_sigmas_to_edge=3, postlag_bias=0.0)
+  ```
+
+  ```python
+  # Left click with default pre and post delays
+  lagged_left_click()
+
+  # Left click with a custom pre-delay range of 0.2 to 0.5 seconds
+  lagged_left_click(prelag=(0.2, 0.5))
+
+  # Right click with no post-delay
+  lagged_right_click(postlag=None)
+  ```
+
+  #### Optional parameters
+
+  * **`prelag`** `float | tuple[float, float] | None` - Delay before the click. A single float sets the minimum, with max automatically set 0.1 seconds higher. A tuple sets an explicit `(min, max)` range. Pass `None` to disable.
+  * **`postlag`** `float | tuple[float, float] | None` - Delay after the click. Behaves identically to `prelag`.
+  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See `clamped_gauss_randfloat()`.
+  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See `clamped_gauss_randfloat()`.
+
+  ---
+
 ### Keyboard Input
   
   #### Key Press
