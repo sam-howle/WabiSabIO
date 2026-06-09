@@ -28,7 +28,9 @@ When using a UI, people tend to aim near the center of targets, follow recogniza
 
 A simple example: if a valid click region spans 100×100 pixels, a basic script might pick a random (x, y) uniformly from that space. Technically random, but the implication is that users click the corners just as often as the center. They don't. People aim for the middle of a target and drift from it with decreasing probability the further out you go. It's center-biased, not flat.
 
-`wabisabio` treats randomness the same way. Instead of uniform noise, its primitives sample from configurable distributions: shape, spread, and center are all adjustable by the caller. The goal is behavior that looks like a person with habits rather than a script rolling dice.
+`wabisabio` treats randomness the same way. Instead of uniform noise, its primitives sample from configurable distributions: shape, spread, and center are all adjustable by the caller.
+
+The goal is behavior that looks like a person with habits rather than a script rolling dice.
 
 The heatmaps shown below were generated using 10,000 sampled coordinates from each distribution:
 
