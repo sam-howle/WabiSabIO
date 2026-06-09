@@ -26,7 +26,7 @@ Humans are consistent in their inconsistency.
 
 When using a UI, people tend to aim near the center of targets, follow recognizable movement patterns, and occasionally overshoot. While the specifics vary person to person, the tendencies do not.
 
-A simple example: if a valid click region spans 100×100 pixels, a basic script might pick a random (x, y) uniformly from that space. Technically random, but the implication is that users click the corners just as often as the center. They don't. People aim for the middle of a target and drift from it with decreasing probability the further out you go. It's center-biased, not flat.
+A simple example: if a valid click region spans 100×100 pixels, a basic script might pick a random (x, y) uniformly from that space. While this is technically random, the implication is that users click the corners just as often as the center. They don't. People aim for the middle of a target and drift from it with decreasing probability the further out you go. It's center-biased, not flat.
 
 `wabisabio` treats randomness the same way. Instead of uniform noise, its primitives sample from configurable distributions: shape, spread, and center are all adjustable by the caller.
 
@@ -42,6 +42,7 @@ The heatmaps shown below were generated using 10,000 sampled coordinates from ea
 </figure>
 
 The following examples generate the three distributions shown above:
+
 ```python
 # Uniform sampling (every valid coordinate is equally likely)
 random_x = random.randint(center_x - radius_x, center_x + radius_x)
@@ -76,7 +77,7 @@ While pixel landing coordinate randomization is one of the easiest behaviors to 
 * Mouse movement curvature
 * Primitive functions for center-biased randomization
 
-Together, these primitives provide lightweight, composable building blocks for constructing more natural interaction patterns.
+Together, these primitives provide lightweight building blocks for constructing more natural input patterns.
 
 ## Installation
 `wabisabio` requiures Python 3.9 or higher.
@@ -92,7 +93,7 @@ pip install .
 
 ## Usage
 
-The following table provides a brief overview of the functions exposed by `wabisabio`:
+The following table provides a brief overview of the functions exposed by `wabisabio`. Optional parameters have been omitted for brevity and are documented in the corresponding sections below.
 
 | Function | Description |
   | --- | --- |
