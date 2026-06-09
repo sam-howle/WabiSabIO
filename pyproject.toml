@@ -4,15 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wabisabio"
-version = "0.1.0"
+version = "0.2.0"
 description = "Human-like input automation framework for Windows"
+readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = {file = "LICENSE"}
 authors = [
     {name = "Sam Howle", email = "samhowle@protonmail.com"}
 ]
 dependencies = [
-    "numpy>=2.0",
+    "numpy>=1.20",
     "scanput",
 ]
 classifiers = [
@@ -20,6 +21,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Libraries",
 ]
+
+[project.urls]
+Repository = "https://github.com/sam-howle/WabiSabIO"
 
 [tool.setuptools]
 py-modules = ["wabisabio"]
