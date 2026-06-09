@@ -466,3 +466,8 @@ rsleep(0.1, 0.25)
 left_up()
 ```
 
+And that's basically it.
+
+Have fun & play nice.
+
+May chaos take the world, etc.
