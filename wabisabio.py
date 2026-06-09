@@ -84,12 +84,10 @@ def move_mouse(
     mouse_hz: int = 500,
     speed_sigmas_to_edge: float = 3,
     speed_bias: float = 0.0,
-    jitter_intensity: int = 10
+    jitter_intensity: int = 10,
+    friction = 5
     #intermediate_p: int = 10
 ) -> None:
-    # These constants look "pretty good" as a good default speed.
-    base_min_steps = 140
-    base_max_steps = 224
 
     mouse_polling_sleep_time = 1 / mouse_hz
     
@@ -97,9 +95,6 @@ def move_mouse(
     # Therefore, we divide total steps by the ratio of default hz to user-defined hz.
     default_hz = 500
     hz_normalization_multiplier = mouse_hz / default_hz
-
-    # Total amount of points along the entire multi-curve path. Less steps = higher speed.
-    total_steps = int(round(clamped_gauss_randint(base_min_steps, base_max_steps, sigmas_to_edge=speed_sigmas_to_edge, bias=speed_bias) / speed_multiplier * hz_normalization_multiplier))
 
     start_x, start_y = get_cursor_position()
 
@@ -120,6 +115,19 @@ def move_mouse(
     # An objective measurement of mouse movement length that works regardless of screen res or aspect ratios.
     movement_distance_to_screen_res_ratio = mouse_movement_straight_line_distance / screen_resolution_hypotenuse
 
+    
+    # Logamrithmic backoff on how much shorter distances back off on speed. 
+    # While shorter pulls are often slower, the real-life scaling doesn't elegantly match 1:1 relative to distance.
+    # So, backing off by a factor relative to the objective normalization value for distnace makes sense
+    # But we want greatly control how much we increase the speed for short pulls. So ratio^0.1 for ex only slightly reduces the speed more. Using the raw ratio as a backoff looks even more goofy in the opposite direction. short moves become far too quick.
+    distance_step_factor = movement_distance_to_screen_res_ratio ** 0.1
+
+    # These constants look "pretty good" as a good default speed.
+    base_min_steps = 140 * distance_step_factor
+    base_max_steps = 224 * distance_step_factor
+    # Total amount of points along the entire multi-curve path. Less steps = higher speed.
+    total_steps = int(round(clamped_gauss_randint(base_min_steps, base_max_steps, sigmas_to_edge=speed_sigmas_to_edge, bias=speed_bias) / speed_multiplier * hz_normalization_multiplier))
+
     # Find midpoint of the valid X,Y area to randomly select p points from. (truncates 1 pixel for odd-valued pixel ranges - sue me ;))
     midpoint_x = (start_x + dest_x) // 2
     midpoint_y = (start_y + dest_y) // 2
@@ -133,7 +141,7 @@ def move_mouse(
 
     # Max total amount of "magnets"
     # longer distances allow more points.
-    max_intermediate_p = max(2, int(movement_distance_to_screen_res_ratio * 10))
+    max_intermediate_p = max(4, int(movement_distance_to_screen_res_ratio * 60))
     intermediate_p = clamped_gauss_randint(1, max_intermediate_p, sigmas_to_edge=2.5, bias=-0.5) # high magnets rare but possible.
 
     # Create correct amount of random points. (indexing at 1 feels more 'true' to the algorithm)
@@ -151,7 +159,7 @@ def move_mouse(
     # That said, slower speeds *should* affect it far more than higher speeds. High speed flicks typically come with a tighter hand grip that limits the overshoot magnitude. Therefore, with faster values we want to *really* stop scaling this 1:1.
 
     speed_scalar = speed_multiplier
-    # We want diminishing returns > 1.0. This formula was kinda brute forced
+    # We want diminishing returns > 1.0. This formula was kinda brute forced with testing.
     if speed_scalar > 1.0:
         speed_scalar = 1.0 + (speed_multiplier / 10)
 
@@ -210,7 +218,45 @@ def move_mouse(
             set_cursor_position(point[0], point[1])
             time.sleep(mouse_polling_sleep_time)
 
-    
+
+# WIP - to be implemented "soon"
+# Implementing mouse "snagging" - makes the teleportion to each point in the curve loop more complex.
+# Making this into its own private function making the code far more readable, as it's used in three places in move_mouse()
+def __run_mouse_movement_curve(curve: np.ndarray, mouse_hz: int, friction: float, screen_resolution_hypotanuse: float) -> None:
+
+    mouse_polling_sleep_time = 1 / mouse_hz
+    prev_point = np.array(get_cursor_position())
+
+    curve_length = len(curve)
+    snag_step_cutoff = curve_length - 6 # If past snag cutoff, we lockout snag.
+    snag_cycles = 0
+
+    for i in range(0, curve_length):
+            point = curve[i]
+            local_speed = np.linalg.norm(point - prev_point) / (mouse_polling_sleep_time * screen_resolution_hypotanuse)
+        
+            if i < snag_step_cutoff and not snag_cycles:
+                snag_cycles = __calc_snag_chance(friction, local_speed) # Can still roll 0.
+            
+            if not snag_cycles:
+                set_cursor_position(point[0], point[1])
+            else: 
+                snag_cycles -= 1
+            time.sleep(mouse_polling_sleep_time) # Sleep regardless of if we're skipping a cycle or not.
+            prev_point = point
+    return
+
+# Friction default val = 5. Returns 0 (no snag) the vast majority of the time.
+# local_speed is resolution-normalized (fraction of screen diagonal per second).
+# Large sigmas_to_edge = tight dist around 0 = mostly no snag. Small = wide = snags with hold cycles.
+def __calc_snag_chance(friction: float, local_speed: float) -> int:
+    if friction <= 0:
+        return 0
+    # High speed or low friction -> large sigmas_to_edge -> distribution pinched at 0 -> rarely snags.
+    # Low speed or high friction -> small sigmas_to_edge -> wide spread -> non-zero abs() values -> snags.
+    # 400 is a tuning constant. raise it to snag less overall, lower it to snag more. Needs to be tuned internally before release.
+    sigmas_to_edge = max(1.0, local_speed * 400.0 / friction)
+    return abs(clamped_gauss_randint(-5, 5, sigmas_to_edge=sigmas_to_edge))
 
 def _apply_mouse_jitter_filter(full_curve: list[np.ndarray], movement_distance_to_screen_res_ratio: float, jitter_intensity: int = 10, speed_scalar: float = 1.0) -> list[np.ndarray]:
     """Applies small 'handshake' position offsets the *every* point of the mouse movement curve."""
