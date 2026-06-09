@@ -22,17 +22,13 @@ Rather than generating deterministic input and injecting randomness afterward, t
 
 ### Design Philosophy
 
-Humans are consistent in their inconsistency. 
+Humans are consistent in their inconsistency.
 
-When interacting with a user interface, people tend to aim near the center of targets, follow consistent movement patterns, occasionally overshoot destinations, and exhibit consistent micro-delays between inputs.
+When using a UI, people tend to aim near the center of targets, follow recognizable movement patterns, and occasionally overshoot. While the specifics vary person to person, the tendencies do not.
 
-For example, if the valid click region spans 100×100 pixels, a basic automation script might select an `(x, y)` coordinate uniformly at random from that range. While technically randomized, the resulting distribution implies that users click the extreme edges of the button just as frequently as the center.
+A simple example: if a valid click region spans 100×100 pixels, a basic script might pick a random (x, y) uniformly from that space. Technically random, but the implication is that users click the corners just as often as the center. They don't. People aim for the middle of a target and drift from it with decreasing probability the further out you go. It's center-biased, not flat.
 
-In practice, people tend to aim for the middle of a target and naturally drift away from it with decreasing frequency. The result is a center-biased distribution rather than a uniform one.
-
-`wabisabio` adopts the same philosophy. Rather than treating randomness as uniformly distributed noise, most of its primitives sample from configurable statistical distributions whose shape, spread, and bias can be adjusted by the caller.
-
-This allows automation to be tuned for a wide variety of interaction styles while avoiding a single fixed behavioral fingerprint.
+`wabisabio` treats randomness the same way. Instead of uniform noise, its primitives sample from configurable distributions: shape, spread, and center are all adjustable by the caller. The goal is behavior that looks like a person with habits rather than a script rolling dice.
 
 The heatmaps shown below were generated using 10,000 sampled coordinates from each distribution:
 
@@ -69,7 +65,7 @@ random_x, random_y = wabisabio.randomize_coordinate_within_range(
 )
 ```
 
-While pixel landing coordinate randomization is one of the easiest behaviors to visualize, the same statistical primitives are used throughout the library and can be applied to:
+While pixel landing coordinate randomization is one of the easiest behaviors to visualize, the same statistical distributions are used throughout the library and are applied to:
 
 * Micro-delays between actions (e.g., moving a mouse before clicking)
 * Action timing delays
