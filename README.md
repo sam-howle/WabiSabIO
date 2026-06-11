@@ -139,7 +139,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   `1000`. Only supply this if you know what you are doing.
   * **`jitter_intensity`** `int` - Controls the intensity of per-point micro-noise applied to the movement curve, simulating natural hand tremor. Higher values produce more visible noise. The noise is
   angle-aligned to the direction of travel at each point, so it looks physically natural rather than random. Scales automatically with movement distance and speed.
-  * **`speed_sigmas_to_edge`** `float` - Controls how tightly the randomized speed clusters around the center of the speed range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives) for a
+  * **`speed_sigmas_to_edge`** `float` - Controls how tightly the randomized speed clusters around the center of the speed range. Higher values produce less variance. See [Statistical Primitives](#statistical-primitives) for a
   detailed explanation.
   * **`speed_bias`** `float` - Biases the randomized speed toward the faster or slower end of the range. Accepts values between `-1.0` (bias toward slow) and `1.0` (bias toward fast).
 
@@ -161,7 +161,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Optional parameters
 
-  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized hold duration clusters around the center of the hold range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized hold duration clusters around the center of the hold range. Higher values produce less variance. See [Statistical Primitives](#statistical-primitives).
   * **`bias`** `float` - Biases the randomized hold duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
 
   ---
@@ -201,8 +201,8 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   * **`prelag`** `float | tuple[float, float] | None` - Delay before the click. A single float sets the minimum, with max automatically set 0.1 seconds higher. A tuple sets an explicit `(min, max)` range. Pass `None` to disable.
   * **`postlag`** `float | tuple[float, float] | None` - Delay after the click. Behaves identically to `prelag`.
-  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
-  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See [Statistical Primitives](#statistical-primitives).
+  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See [Statistical Primitives](#statistical-primitives).
 
   ---
 
@@ -224,7 +224,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Optional parameters
 
-  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized key hold duration clusters around the center of the hold range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives)
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized key hold duration clusters around the center of the hold range. Higher values produce less variance. See [Statistical Primitives](#statistical-primitives)
   for a detailed explanation.
 
   * **`bias`** `float` - Biases the randomized hold duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
@@ -257,8 +257,8 @@ The following table provides a brief overview of the functions exposed by `wabis
   * **`prelag`** `float | tuple[float, float] | None` - Delay before the keypress. A single float sets the minimum, with max automatically set 0.1 seconds higher. A tuple sets an explicit `(min, max)`
   range. Pass `None` to disable.
   * **`postlag`** `float | tuple[float, float] | None` - Delay after the keypress. Behaves identically to `prelag`.
-  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
-  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See [Statistical Primitives](#statistical-primitives).
+  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See [Statistical Primitives](#statistical-primitives).
 
   ---
 
@@ -281,7 +281,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   #### Optional parameters
 
   * **`min_time`** / **`max_time`** `float` - The minimum and maximum delay between each modifier down, key press, and modifier up event.
-  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See [Statistical Primitives](#statistical-primitives).
 
   ---
 
@@ -308,7 +308,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   #### Optional parameters
 
   * **`min_time`** / **`max_time`** `float` - The minimum and maximum delay between the modifier down, click, and modifier up events.
-  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See [Statistical Primitives](#statistical-primitives).
 
   ---
 
@@ -398,7 +398,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Optional parameters
 
-  * **`sigmas_to_edge_x`** / **`sigmas_to_edge_y`** `float` - Controls how tightly the randomized coordinate clusters around the center on each axis. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives) for a detailed explanation.
+  * **`sigmas_to_edge_x`** / **`sigmas_to_edge_y`** `float` - Controls how tightly the randomized coordinate clusters around the center on each axis. Higher values produce less variance. See [Statistical Primitives](#statistical-primitives) for a detailed explanation.
   * **`bias_x`** / **`bias_y`** `float` - Biases the randomized coordinate toward one side of the area on each axis. Accepts values between `-1.0` and `1.0`.
 
   ---
@@ -424,7 +424,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   When called with only `min_time`, the max duration is automatically set to 40% above the supplied value.
 
   #### Optional parameters
-  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized sleep duration clusters around the center of the range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives) for a
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized sleep duration clusters around the center of the range. Higher values produce less variance. See [Statistical Primitives](#statistical-primitives) for a
   detailed explanation.
   * **`bias`** `float` - Biases the randomized duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
 
@@ -432,15 +432,11 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   ### Statistical Primitives
 
-  These functions underpin all randomization in the library. They return values over a clamped gaussian distribution, meaning results cluster naturally around the center of the supplied range rather than
-  being uniformly distributed. Edge values are possible but rare.
+  These functions underpin all randomization in the library. They return values over a clamped gaussian distribution, meaning results cluster naturally around the center of the supplied range rather than being uniformly distributed. Edge values are possible but rare.
 
-  Conceptually, picture a bell curve stretched across `min_val` and `max_val` that peaks at the center of the range by default. Most samples land near that peak, and the odds drop off the further out you go.
-  `sigmas_to_edge` is just how many standard deviations are squeezed between the peak and each edge. Higher values compresses the curve into a tall, narrow spike (edge values become very rare), while a
-  lower value flattens it out (edges become more plausible, closer to uniform).
+  Conceptually, picture a bell curve stretched across `min_val` and `max_val` that peaks at the center of the range by default. Most samples land near that peak, and the odds drop off the further out you go. `sigmas_to_edge` is just how many standard deviations are squeezed between the peak and each edge. Higher values compresses the curve into a tall, narrow spike (edge values become very rare), while a lower value flattens it out (edges become more plausible, closer to uniform).
 
-  `bias` shifts the peak itself toward one edge without changing its shape: `1.0` peaks at `max_val`, `-1.0` peaks at `min_val`, and `0.0` keeps it centered. This is what produces the off-center heatmap shown
-  earlier — a left-biased target isn't randomness with a left-skewed cutoff, it's the same bell curve, just recentered.
+  `bias` shifts the peak itself toward one edge without changing its shape: `1.0` peaks at `max_val`, `-1.0` peaks at `min_val`, and `0.0` keeps it centered. This is what produces the off-center heatmap shown earlier. A left-biased target isn't randomness with a left-skewed cutoff. Rather, it's the same bell curve, just recentered.
 
   ```python
   clamped_gauss_randfloat(min_val, max_val, sigmas_to_edge=3, bias=0.0)
