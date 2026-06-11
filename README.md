@@ -93,30 +93,30 @@ pip install .
 
 ## Usage
 
-The following table provides a brief overview of the functions exposed by `wabisabio`. Optional parameters have been omitted for brevity and are documented in the corresponding sections below.
+The following table provides a brief overview of the functions exposed by `wabisabio`. Optional parameters have been omitted for brevity and are documented in the corresponding sections linked below.
 
 | Function | Description |
   | --- | --- |
-  | `move_mouse(dest_x, dest_y)` | Move mouse from current position to the supplied `(x, y)` screen coordinates taking a curved path |
-  | `press_key(key)` | Presses the supplied `key` and releases after a short, randomized delay |
-  | `left_click()` | Performs a left click and releases after a short, randomized delay |
-  | `right_click()` | Performs a right click and releases after a short, randomized delay |
-  | `lagged_press_key(key)` | Same as `press_key()`, but with randomized delays before and/or after the event |
-  | `lagged_left_click()` | Same as `left_click()`, but with randomized delays before and/or after the event |
-  | `lagged_right_click()` | Same as `right_click()`, but with randomized delays before and/or after the event |
-  | `modifier_key_press(modifier, key)` | Presses one or more modifier keys (e.g. `"shift"`, `"ctrl"`), then presses `key`, then releases all in reverse order with randomized delays between each event |
-  | `modifier_left_click(modifier)` | Same as `left_click()`, but holds one or more modifier keys for the duration of the click |
-  | `modifier_right_click(modifier)` | Same as `right_click()`, but holds one or more modifier keys for the duration of the click |
-  | `type_string(input_string)` | Types the supplied string character by character with human-like inter-key delays. Handles shift-required characters and special keys (`\n`, `\t`, `\b`) automatically |
-  | `toggle_key_preflight_check()` | Ensures toggle keys (CapsLock, ScrollLock, NumLock) are in the desired state before automation begins. Defaults to all off. |
-  | `randomize_coordinate_within_range(x, y, radius_x, radius_y)` | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` and an `x` and `y` radius (total pixels from center on each axis) |
-  | `randomize_coordinate_within_square(x, y, radius)` | Same as `randomize_coordinate_within_range()`, but for square-shaped UI elements where `x` and `y` radii are equal |
-  | `clamped_gauss_randint(min_int, max_int)` | Returns a gaussian-distributed random integer clamped to `[min_int, max_int]`. Center values are more probable than edge values |
-  | `clamped_gauss_randfloat(min_val, max_val)` | Same as `clamped_gauss_randint()`, but returns a float |
-  | `start_jitter()` | Causes the mouse cursor to periodically jitter 1-3 pixels, simulating a human hand resting on a mouse. Shares a mutex with `move_mouse()` and will not interfere with it. Resumes automatically after movement completes. Runs indefinitely until `stop_jitter()` is called |
-  | `stop_jitter()` | Disables the jitter thread. Call `start_jitter()` again to resume |
-  | `rsleep(min_time, max_time)` | Delays execution for a random duration between `min_time` and `max_time` over a clamped gaussian distribution, making center values more common |
-  | `rsleep(min_time)` | When called with only `min_time`, the max sleep duration is automatically set to 40% above the supplied value |
+  | [`move_mouse(dest_x, dest_y)`](#mouse-movement) | Move mouse from current position to the supplied `(x, y)` screen coordinates taking a curved path |
+  | [`press_key(key)`](#key-press) | Presses the supplied `key` and releases after a short, randomized delay |
+  | [`left_click()`](#click) | Performs a left click and releases after a short, randomized delay |
+  | [`right_click()`](#click) | Performs a right click and releases after a short, randomized delay |
+  | [`lagged_press_key(key)`](#lagged-key-press) | Same as `press_key()`, but with randomized delays before and/or after the event |
+  | [`lagged_left_click()`](#lagged-click) | Same as `left_click()`, but with randomized delays before and/or after the event |
+  | [`lagged_right_click()`](#lagged-click) | Same as `right_click()`, but with randomized delays before and/or after the event |
+  | [`modifier_key_press(modifier, key)`](#modifier-key-press) | Presses one or more modifier keys (e.g. `"shift"`, `"ctrl"`), then presses `key`, then releases all in reverse order with randomized delays between each event |
+  | [`modifier_left_click(modifier)`](#modifier-click) | Same as `left_click()`, but holds one or more modifier keys for the duration of the click |
+  | [`modifier_right_click(modifier)`](#modifier-click) | Same as `right_click()`, but holds one or more modifier keys for the duration of the click |
+  | [`type_string(input_string)`](#type-string) | Types the supplied string character by character with human-like inter-key delays. Handles shift-required characters and special keys (`\n`, `\t`, `\b`) automatically |
+  | [`toggle_key_preflight_check()`](#toggle-key-preflight-check) | Ensures toggle keys (CapsLock, ScrollLock, NumLock) are in the desired state before automation begins. Defaults to all off. |
+  | [`randomize_coordinate_within_range(x, y, radius_x, radius_y)`](#coordinate-randomization) | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` and an `x` and `y` radius (total pixels from center on each axis) |
+  | [`randomize_coordinate_within_square(x, y, radius)`](#coordinate-randomization) | Same as `randomize_coordinate_within_range()`, but for square-shaped UI elements where `x` and `y` radii are equal |
+  | [`clamped_gauss_randint(min_int, max_int)`](#statistical-primitives) | Returns a gaussian-distributed random integer clamped to `[min_int, max_int]`. Center values are more probable than edge values |
+  | [`clamped_gauss_randfloat(min_val, max_val)`](#statistical-primitives) | Same as `clamped_gauss_randint()`, but returns a float |
+  | [`start_jitter()`](#idle-mouse-behavior) | Causes the mouse cursor to periodically jitter 1-3 pixels, simulating a human hand resting on a mouse. Shares a mutex with `move_mouse()` and will not interfere with it. Resumes automatically after movement completes. Runs indefinitely until `stop_jitter()` is called |
+  | [`stop_jitter()`](#idle-mouse-behavior) | Disables the jitter thread. Call `start_jitter()` again to resume |
+  | [`rsleep(min_time, max_time)`](#random-sleep) | Delays execution for a random duration between `min_time` and `max_time` over a clamped gaussian distribution, making center values more common |
+  | [`rsleep(min_time)`](#random-sleep) | When called with only `min_time`, the max sleep duration is automatically set to 40% above the supplied value |
 
 
 ### Mouse Movement
@@ -139,7 +139,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   `1000`. Only supply this if you know what you are doing.
   * **`jitter_intensity`** `int` - Controls the intensity of per-point micro-noise applied to the movement curve, simulating natural hand tremor. Higher values produce more visible noise. The noise is
   angle-aligned to the direction of travel at each point, so it looks physically natural rather than random. Scales automatically with movement distance and speed.
-  * **`speed_sigmas_to_edge`** `float` - Controls how tightly the randomized speed clusters around the center of the speed range. Higher values produce less variance. See `clamped_gauss_randfloat()` for a
+  * **`speed_sigmas_to_edge`** `float` - Controls how tightly the randomized speed clusters around the center of the speed range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives) for a
   detailed explanation.
   * **`speed_bias`** `float` - Biases the randomized speed toward the faster or slower end of the range. Accepts values between `-1.0` (bias toward slow) and `1.0` (bias toward fast).
 
@@ -161,14 +161,14 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Optional parameters
 
-  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized hold duration clusters around the center of the hold range. Higher values produce less variance. See `clamped_gauss_randfloat()`.
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized hold duration clusters around the center of the hold range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives).
   * **`bias`** `float` - Biases the randomized hold duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
 
   ---
 
   #### Lagged Click
 
-  Same as `left_click()` / `right_click()`, but with randomized delays before and/or after the click event. Useful for simulating reaction time or a natural pause after clicking.
+  Same as [`left_click()` / `right_click()`](#click), but with randomized delays before and/or after the click event. Useful for simulating reaction time or a natural pause after clicking.
 
   ```python
   lagged_left_click(prelag=0.1, postlag=0.1, sigmas_to_edge=3, bias=0.0, prelag_sigmas_to_edge=3, prelag_bias=0.0, postlag_sigmas_to_edge=3, postlag_bias=0.0)
@@ -176,22 +176,33 @@ The following table provides a brief overview of the functions exposed by `wabis
   ```
 
   ```python
-  # Left click with default pre and post delays
+  # Left click with default pre and post delays (between 0.1 and 0.2 seconds)
   lagged_left_click()
 
-  # Left click with a custom pre-delay range of 0.2 to 0.5 seconds
+  # Left click with a custom pre-delay range of 0.2 to 0.5 seconds & default postlag delay.
   lagged_left_click(prelag=(0.2, 0.5))
 
   # Right click with no post-delay
   lagged_right_click(postlag=None)
   ```
 
+  All `lagged_` functions are functionally equivalent to calling `rsleep()` before and after a non-lagged version of the respective action. For example:
+  ```python
+    rsleep(0.2, 0.3)
+    left_click()
+    rsleep(0.2, 0.3)
+
+    # Functionally equivalent to:
+    lagged_left_click(prelag=(0.2, 0.3), postlag=(0.2, 0.3))
+  ```
+  The `lagged_` versions of the click and key-press input functions were created to prevent the need to constantly call [`rsleep()`](#random-sleep) before and after each action. Take note that two `lagged_` calls right next to each other will apply both the `postlag` of the first call and the `prelag` of the second call additively. This can be avoided by passing `postlag=None` on the first call or `prelag=None` on the second.
+
   #### Optional parameters
 
   * **`prelag`** `float | tuple[float, float] | None` - Delay before the click. A single float sets the minimum, with max automatically set 0.1 seconds higher. A tuple sets an explicit `(min, max)` range. Pass `None` to disable.
   * **`postlag`** `float | tuple[float, float] | None` - Delay after the click. Behaves identically to `prelag`.
-  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See `clamped_gauss_randfloat()`.
-  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See `clamped_gauss_randfloat()`.
+  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
 
   ---
 
@@ -213,7 +224,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Optional parameters
 
-  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized key hold duration clusters around the center of the hold range. Higher values produce less variance. See `clamped_gauss_randfloat()`
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized key hold duration clusters around the center of the hold range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives)
   for a detailed explanation.
 
   * **`bias`** `float` - Biases the randomized hold duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
@@ -222,30 +233,32 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Lagged Key Press
 
-  Same as `press_key()`, but with randomized delays before and/or after the keypress event. Useful for simulating reaction time before a keypress, or a natural pause after.
+  Same as [`press_key()`](#key-press), but with randomized delays before and/or after the keypress event. Useful for simulating reaction time before a keypress, or a natural pause after.
 
   ```python
   lagged_press_key(key, prelag=0.1, postlag=0.1, sigmas_to_edge=3, bias=0.0, prelag_sigmas_to_edge=3, prelag_bias=0.0, postlag_sigmas_to_edge=3, postlag_bias=0.0)
   ```
 
   ```python
-  # Press 'e' with default pre and post delays
+  # Press 'e' with default pre and post delays (between 0.1 and 0.2 seconds)
   lagged_press_key('e')
 
-  # Press 'e' with a custom pre-delay range of 0.2 to 0.5 seconds
+  # Press 'e' with a custom pre-delay range of 0.2 to 0.5 seconds & default postlag delay.
   lagged_press_key('e', prelag=(0.2, 0.5))
 
   # Press 'e' with no post-delay
   lagged_press_key('e', postlag=None)
   ```
 
+  `lagged_press_key()` follows the same `rsleep()`-equivalence and additive-stacking behavior as the lagged click functions — see [Lagged Click](#lagged-click) above for details.
+
   #### Optional parameters
 
   * **`prelag`** `float | tuple[float, float] | None` - Delay before the keypress. A single float sets the minimum, with max automatically set 0.1 seconds higher. A tuple sets an explicit `(min, max)`
   range. Pass `None` to disable.
   * **`postlag`** `float | tuple[float, float] | None` - Delay after the keypress. Behaves identically to `prelag`.
-  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See `clamped_gauss_randfloat()`.
-  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See `clamped_gauss_randfloat()`.
+  * **`prelag_sigmas_to_edge`** / **`prelag_bias`** - Controls the distribution of the pre-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
+  * **`postlag_sigmas_to_edge`** / **`postlag_bias`** - Controls the distribution of the post-delay. See [`clamped_gauss_randfloat()`](#statistical-primitives).
 
   ---
 
@@ -268,13 +281,13 @@ The following table provides a brief overview of the functions exposed by `wabis
   #### Optional parameters
 
   * **`min_time`** / **`max_time`** `float` - The minimum and maximum delay between each modifier down, key press, and modifier up event.
-  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See `clamped_gauss_randfloat()`.
+  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See [`clamped_gauss_randfloat()`](#statistical-primitives).
 
   ---
 
   #### Modifier Click
 
-  Same idea as `modifier_key_press()`, but for mouse buttons. Holds one or more modifier keys for the duration of the click, then releases them in reverse order.
+  Same idea as [`modifier_key_press()`](#modifier-key-press), but for mouse buttons. Holds one or more modifier keys for the duration of the click, then releases them in reverse order.
 
   ```python
   modifier_left_click(modifier, min_time=0.03, max_time=0.08, sigmas_to_edge=3, bias=0.0)
@@ -295,13 +308,13 @@ The following table provides a brief overview of the functions exposed by `wabis
   #### Optional parameters
 
   * **`min_time`** / **`max_time`** `float` - The minimum and maximum delay between the modifier down, click, and modifier up events.
-  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See `clamped_gauss_randfloat()`.
+  * **`sigmas_to_edge`** / **`bias`** - Controls the distribution of the inter-event delays. See [`clamped_gauss_randfloat()`](#statistical-primitives).
 
   ---
 
   #### Type String
 
-  Types a string character by character with human-like inter-key delays. Handles shift-required characters (`!`, `@`, `#`, etc.) and special keys (`\n`, `\t`, `\b`) automatically. CapsLock state is not accounted for. Use `toggle_key_preflight_check()` to ensure it is off before calling if needed.
+  Types a string character by character with human-like inter-key delays. Handles shift-required characters (`!`, `@`, `#`, etc.) and special keys (`\n`, `\t`, `\b`) automatically. CapsLock state is not accounted for. Use [`toggle_key_preflight_check()`](#toggle-key-preflight-check) to ensure it is off before calling if needed.
 
   ```python
   type_string(input_string, speed_multiplier=1.0, sleep_sigmas_to_edge=1.5, sleep_bias=-0.3, hold_sigmas_to_edge=3, hold_bias=0.0)
@@ -352,8 +365,8 @@ The following table provides a brief overview of the functions exposed by `wabis
   stop_jitter()
   ```
 
-  `start_jitter()` and `move_mouse()` share a mutex, so jitter will never interfere with an in-progress mouse movement and will automatically resume once the cursor is no longer in motion. You do not need
-  to call `stop_jitter()` before calling `move_mouse()`.
+  `start_jitter()` and [`move_mouse()`](#mouse-movement) share a mutex, so jitter will never interfere with an in-progress mouse movement and will automatically resume once the cursor is no longer in motion. You do not need
+  to call `stop_jitter()` before calling [`move_mouse()`](#mouse-movement).
 
   `stop_jitter()` permanently disables the jitter thread until `start_jitter()` is called again.
 
@@ -385,7 +398,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   #### Optional parameters
 
-  * **`sigmas_to_edge_x`** / **`sigmas_to_edge_y`** `float` - Controls how tightly the randomized coordinate clusters around the center on each axis. Higher values produce less variance. See `clamped_gauss_randfloat()` for a detailed explanation.
+  * **`sigmas_to_edge_x`** / **`sigmas_to_edge_y`** `float` - Controls how tightly the randomized coordinate clusters around the center on each axis. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives) for a detailed explanation.
   * **`bias_x`** / **`bias_y`** `float` - Biases the randomized coordinate toward one side of the area on each axis. Accepts values between `-1.0` and `1.0`.
 
   ---
@@ -411,7 +424,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   When called with only `min_time`, the max duration is automatically set to 40% above the supplied value.
 
   #### Optional parameters
-  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized sleep duration clusters around the center of the range. Higher values produce less variance. See `clamped_gauss_randfloat()` for a
+  * **`sigmas_to_edge`** `float` - Controls how tightly the randomized sleep duration clusters around the center of the range. Higher values produce less variance. See [`clamped_gauss_randfloat()`](#statistical-primitives) for a
   detailed explanation.
   * **`bias`** `float` - Biases the randomized duration toward the shorter or longer end of the range. Accepts values between `-1.0` (bias toward short) and `1.0` (bias toward long).
 
