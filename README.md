@@ -10,7 +10,7 @@
 
 Most keyboard and mouse automation libraries optimize for one thing: reliably interacting with a user interface. The resulting inputs are typically fast, precise, and perfectly repeatable, making them easy to distinguish from those of a real user through even relatively simple behavioral analysis.
 
-A common response is to introduce randomness by varying delays, mouse speed, cursor landing location, or path generation. While this reduces consistency, it often produces its own unrealistic behavior. Human input is not uniformly random. Users tend to aim near the center of targets, maintain relatively consistent movement characteristics, occasionally overshoot a destination, and naturally alternate between periods of activity and inactivity.
+A common response is to introduce randomness by varying delays, mouse speed, cursor landing location, or path generation. While this reduces consistency, it often produces its own unrealistic behavior: human input is not uniformly random. Users tend to aim near the center of targets, maintain relatively consistent movement characteristics, occasionally overshoot a destination, and naturally alternate between periods of activity and inactivity.
 
 This observation led to an interesting question:
 
@@ -26,7 +26,7 @@ Humans are consistent in their inconsistency.
 
 When using a UI, people tend to aim near the center of targets, follow recognizable movement patterns, and occasionally overshoot. While the specifics vary person to person, the tendencies do not.
 
-A simple example: if a valid click region spans 100×100 pixels, a basic script might pick a random (x, y) uniformly from that space. While this is technically random, the implication is that users click the corners just as often as the center. They don't. People aim for the middle of a target and drift from it with decreasing probability the further out you go. It's center-biased, not flat.
+A simple example: if a valid click region spans 100×100 pixels, a basic script might pick a random `(x, y)` coordinate uniformly from that space. While this is technically random, the implication is that users click the corners just as often as the center. They don't. People aim for the middle of a target and drift from it with decreasing probability the further out you go. It's center-biased, not flat.
 
 `wabisabio` treats randomness the same way. Instead of uniform noise, its primitives sample from configurable distributions: shape, spread, and center are all adjustable by the caller.
 
@@ -309,7 +309,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   ```python
   type_string("Hello, world!")
-  type_string("search query\n")
+  type_string("But I like how mine's a little off-center. It's got 'Wabi Sabi.'")
   ```
 
   #### Optional parameters
@@ -469,5 +469,3 @@ left_up()
 And that's basically it.
 
 Have fun & play nice.
-
-May chaos take the world, etc.
