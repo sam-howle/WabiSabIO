@@ -3,7 +3,7 @@
 
 `wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features center-biased coordinate and timing randomization, curved mouse movement, destination overshoot and correction, and idle mouse jitter to model the small imperfections that naturally emerge during human interaction.
 
-<img src="demo.gif" width="320">
+<img src="https://raw.githubusercontent.com/sam-howle/WabiSabIO/main/demo.gif" width="320">
 <sub><i>*Fire hydrant image recognition module sold separately.</i></sub>
 
 ## Introduction
@@ -35,7 +35,7 @@ The goal is behavior that looks like a person with habits rather than a script r
 The heatmaps shown below were generated using 10,000 sampled coordinates from each distribution:
 
 <figure>
-  <img src="DeathBy10000Clicks.png">
+  <img src="https://raw.githubusercontent.com/sam-howle/WabiSabIO/main/DeathBy10000Clicks.png">
   <figcaption>
    <i>Uniform sampling (left), center-biased sampling (center), customized center-biased sampling (right)</i>
   </figcaption>
@@ -434,6 +434,13 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   These functions underpin all randomization in the library. They return values over a clamped gaussian distribution, meaning results cluster naturally around the center of the supplied range rather than
   being uniformly distributed. Edge values are possible but rare.
+
+  Conceptually, picture a bell curve stretched across `min_val` and `max_val` that peaks at the center of the range by default. Most samples land near that peak, and the odds drop off the further out you go.
+  `sigmas_to_edge` is just how many standard deviations are squeezed between the peak and each edge. Higher values compresses the curve into a tall, narrow spike (edge values become very rare), while a
+  lower value flattens it out (edges become more plausible, closer to uniform).
+
+  `bias` shifts the peak itself toward one edge without changing its shape: `1.0` peaks at `max_val`, `-1.0` peaks at `min_val`, and `0.0` keeps it centered. This is what produces the off-center heatmap shown
+  earlier — a left-biased target isn't randomness with a left-skewed cutoff, it's the same bell curve, just recentered.
 
   ```python
   clamped_gauss_randfloat(min_val, max_val, sigmas_to_edge=3, bias=0.0)
