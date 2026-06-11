@@ -54,7 +54,7 @@ _jitter_thread: threading.Thread | None = None
 
 
 # "Borrowed" from https://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm#Python
-# Using this is probably better than manually piecing together several different bezier curves 
+# Using this is probably better than manually piecing together several different bezier curves, as it can be used to create complex motions with a single curve.
 def _de_casteljau(t: float, coefs: list[np.ndarray]) -> np.ndarray:
     """Computes a single point on a Bezier curve via De Casteljau's algorithm given normalized t and a points array."""
     beta = coefs.copy()  # values in this list are overridden
@@ -92,7 +92,7 @@ def move_mouse(
     mouse_polling_sleep_time = 1 / mouse_hz
     
     # For speed normalization. If someone wants to pass 125 hz for example, they will be 4x slower.
-    # Therefore, we divide total steps by the ratio of default hz to user-defined hz.
+    # Therefore, we divide total steps by the ratio of default hz to user-defined hz to prevent user-supplied hz values from affecting speed.
     default_hz = 500
     hz_normalization_multiplier = mouse_hz / default_hz
 
@@ -132,7 +132,9 @@ def move_mouse(
     midpoint_x = (start_x + dest_x) // 2
     midpoint_y = (start_y + dest_y) // 2
     
-    # edge case where the mouse movement path is perfectly vertical or horizontal, radius is zero, meaning its a perfectly straight line.
+    # Creates a "general floor" for radius_x/radius_y. Each is ~distance/2 * cos/sin(theta), so near-perpendicular
+    # angles shrink that axis's radius toward zero (perfectly vertical/horizontal being the extreme case).
+    # A floor smooths this out continuously rather than branching on the exact edge case.
     min_radius = max(int(screen_resolution_hypotenuse * 0.015), int(mouse_movement_straight_line_distance * 0.1))
 
     radius_x = max(min_radius, abs(start_x - midpoint_x))
@@ -181,10 +183,8 @@ def move_mouse(
         return
     
 
-    # Compute overshoot.
-    overshoot_points = max(1, round(movement_distance_to_screen_res_ratio * speed_scalar * 4))
-    if overshoot_points > 4:
-        overshoot_points = 4
+    # Compute total overshoot points.
+    overshoot_points = min(4, max(1, round(movement_distance_to_screen_res_ratio * speed_scalar * 4)))
 
 
     for i in range(1, overshoot_points + 1):
@@ -252,9 +252,9 @@ def __run_mouse_movement_curve(curve: np.ndarray, mouse_hz: int, friction: float
 def __calc_snag_chance(friction: float, local_speed: float) -> int:
     if friction <= 0:
         return 0
-    # High speed or low friction -> large sigmas_to_edge -> distribution pinched at 0 -> rarely snags.
-    # Low speed or high friction -> small sigmas_to_edge -> wide spread -> non-zero abs() values -> snags.
-    # 400 is a tuning constant. raise it to snag less overall, lower it to snag more. Needs to be tuned internally before release.
+    # High speed or low friction → large sigmas_to_edge → distribution pinched at 0 → rarely snags.
+    # Low speed or high friction → small sigmas_to_edge → wide spread → non-zero abs() values → snags.
+    # 400 is a tuning knob: raise it to snag less overall, lower it to snag more.
     sigmas_to_edge = max(1.0, local_speed * 400.0 / friction)
     return abs(clamped_gauss_randint(-5, 5, sigmas_to_edge=sigmas_to_edge))
 
@@ -417,19 +417,24 @@ def type_string(
     min_next_key_delay = 0.02 / speed_multiplier
     max_next_key_delay = 0.08 / speed_multiplier
 
+    # Use separate shift-delay variables, (Previous behavior caused compoundingly longer key press delays every time shift was touched.)
+    shift_min_next_key_delay = min_next_key_delay * 1.05 
+    shift_max_next_key_delay = max_next_key_delay * 1.05
+
     # If a shift_char is typed, we should manually press shift first.
     # Otherwise, scanput will press shift and the required key simultanously.
     shift_charset='~!@#$%^&*()_+{}|:"<>?'
     with _mouse_lock:
         for char in input_string:
-            # Press shift manually for special chars to avoid same-frame modifier+key press quirk of the scanput library.
-            if char in shift_charset:
-                min_next_key_delay *= 1.1
-                max_next_key_delay *= 1.1
+            # Press shift manually for special chars & caps chars to avoid same-frame modifier+key press quirk of the scanput library.
+            if char in shift_charset or char.isupper():
                 modifier_key_press("shift", char, bias=hold_bias, sigmas_to_edge=hold_sigmas_to_edge)
+                next_min, next_max = shift_min_next_key_delay, shift_max_next_key_delay
             else:
+                # If lower-case. (Capslock must be handled by users, as stated in README.md)
                 press_key(char, bias=hold_bias, sigmas_to_edge=hold_sigmas_to_edge)
-            rsleep(min_next_key_delay, max_next_key_delay, bias=sleep_bias, sigmas_to_edge=sleep_sigmas_to_edge)
+                next_min, next_max = min_next_key_delay, max_next_key_delay
+            rsleep(next_min, next_max, bias=sleep_bias, sigmas_to_edge=sleep_sigmas_to_edge)
         
 
 def rsleep(min_time: float, max_time: float | None = None, sigmas_to_edge: float = 3, bias: float = 0.0) -> None:
