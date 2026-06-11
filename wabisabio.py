@@ -294,10 +294,16 @@ def _apply_mouse_jitter_filter(full_curve: list[np.ndarray], movement_distance_t
 def clamped_gauss_randint(min_int: int, max_int: int, sigmas_to_edge: float = 3, bias: float = 0.0) -> int:
     if min_int > max_int:
         raise ValueError("empty range for clamped_gauss_randint()")
+    if bias < -1.0 or bias > 1.0:
+        raise ValueError("Bias value outside of valid [-1.0, 1.0] range in clamped_gauss_randint()")
     return int(round(clamped_gauss_randfloat(min_int, max_int, sigmas_to_edge, bias)))
 
-# All normal distribution-based calculations call this function, directly or indirectly. 
+# All normal distribution-based calculations call this function, directly or indirectly.
 def clamped_gauss_randfloat(min_val: float, max_val: float, sigmas_to_edge: float = 3, bias: float = 0.0) -> float:
+    if min_val > max_val:
+        raise ValueError("empty range for clamped_gauss_randfloat()")
+    if bias < -1.0 or bias > 1.0:
+        raise ValueError("Bias value outside of valid [-1.0, 1.0] range in clamped_gauss_randfloat()")
     half_range = (max_val - min_val) / 2
     mean = (min_val + max_val) / 2 + bias * half_range
     std_dev = half_range / sigmas_to_edge
