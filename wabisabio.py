@@ -78,6 +78,91 @@ def __compute_de_casteljau_curve(total_steps: int, points_array: list[np.ndarray
     return full_curve
 
 
+# Basic idea is, at points that are between 5% from the beginning and 15% from the end, there is a small chance that the midpoints "reshuffle" at any given point in that range
+# Meaning: for some of the curves, the points that manipulate angle and speed of the curve reshuffle, causing sharp edges / changes in direction and/or speed.
+# This is likely a lot closer-looking to real human input for it to sometimes do this.
+def __compute_de_casteljau_curve_with_rerolls(total_steps: int, points_array: list[np.ndarray], min_radius: int) -> list[np.ndarray]:
+    # points_array contains the 'magnetic' control points. p0 and p_final are anchored endpoints.
+    full_curve = []
+
+    # t=0 returns p0 (already at start), t=1 returns p_final (appended manually below) — no need to compute either.
+
+    # Variables we need for magnetic rerolls.
+    # Avoid rerolls at the fitst 5% and last 15% of the points on the curve to prevent jankiness
+    initial_lockout = int(round(total_steps * 0.05))
+    final_lockout = int(round(total_steps * 0.85)) # last 15%
+
+    # 1 / reroll_chance_denominator is the chance that each individual step can result in a reroll.
+    # Doing this in two steps for reability. The base denominator is (1 - initial_lockout - final_lockout) - or 1 in n where n is total steps where lockout isnt possible.
+    # At base, the odds of this occuring at least once is ~63% (if we dont backoff odds of it happening twice)
+    # We will then tune that chance (likely down) in the subsequent line. This makes it easier to tune during deveopment.
+    base_reroll_chance_denominator = total_steps * 0.80 
+    reroll_chance_denominator = int(round( base_reroll_chance_denominator * 0.85)) # Further redunction of 15%.
+
+    # magnetic midpoints
+    total_midpoints = len(points_array) - 2
+    
+    # Copy made for in case a reroll is triggered, we can change the remaining t values based on rerolled curve without afftecting the total loop steps.
+    local_total_steps = total_steps
+    
+    # Allows resetting t without interfereing with the loop set by `step`
+    step_normalizer = 0
+    for step in range(1, total_steps):
+
+
+        t = (step - step_normalizer) / local_total_steps
+        
+        # If outside lockout range.
+        if step > initial_lockout and step < final_lockout:
+            
+            # 1 in total reroll_chance_denominator
+            if random.randint(1, reroll_chance_denominator) == 1:
+                # set new p0 to current pos in curve.
+                current_point = _de_casteljau(t, points_array)
+                shuffled_points_array = [current_point]
+                destination = points_array[-1]
+
+                midpoint_x, midpoint_y = (current_point + destination) // 2 # rounds down if odd-numbered.
+
+                # Keep the rerolled control-point area two-dimensional for perfectly
+                # horizontal/vertical remaining paths, just as the initial curve does.
+                radius_x, radius_y = np.maximum(
+                    min_radius,
+                    np.abs(current_point - np.array([midpoint_x, midpoint_y])),
+                )
+
+                # Create correct amount of random points. (indexing at 1 feels more 'true' to the algorithm)
+                for point in range(1, total_midpoints + 1): 
+                    random_x, random_y = randomize_coordinate_within_range(midpoint_x, midpoint_y, radius_x, radius_y, sigmas_to_edge_x=2, sigmas_to_edge_y=2)
+                    random_point = np.array([random_x, random_y])
+                    shuffled_points_array.append(random_point)
+                
+                # Add last point.
+                shuffled_points_array.append(points_array[-1])
+                
+                # Overwrite original points array to continue the loop.
+                points_array = shuffled_points_array
+
+                # Set new t denominator for computing rerolled curve.
+                local_total_steps = total_steps - step
+               
+                # this is subtracted from step before doing computation. 
+                # This lets us continue the curve at a new t numerator without messing with loop position at `step`
+                step_normalizer = step
+
+                # Every time we reroll points, make it less likely to occur again.
+                reroll_chance_denominator = int(round(reroll_chance_denominator * 1.6))
+
+
+
+
+
+        full_curve.append(_de_casteljau(t, points_array))
+
+    full_curve.append(points_array[-1])
+    return full_curve
+
+
 def move_mouse(
     dest_x: int, dest_y: int,
     speed_multiplier: float = 1.0,
@@ -86,11 +171,8 @@ def move_mouse(
     speed_bias: float = 0.0,
     jitter_intensity: int = 10,
     friction = 5
-    #intermediate_p: int = 10
 ) -> None:
 
-    mouse_polling_sleep_time = 1 / mouse_hz
-    
     # For speed normalization. If someone wants to pass 125 hz for example, they will be 4x slower.
     # Therefore, we divide total steps by the ratio of default hz to user-defined hz to prevent user-supplied hz values from affecting speed.
     default_hz = 500
@@ -103,8 +185,8 @@ def move_mouse(
 
     # Get screen res.
     screen_resolution_x, screen_resolution_y = get_screen_resolution()
-    
-    # Diagonal of the screen resolution. c^2 = a^2 + b^2. Shoutouts to Pythagarus 
+
+    # Diagonal of the screen resolution. c^2 = a^2 + b^2. Shoutouts to Pythagarus
     screen_resolution_hypotenuse = sqrt(screen_resolution_x ** 2 + screen_resolution_y ** 2)
 
     mouse_movement_straight_line_distance_x = abs(start_x - dest_x)
@@ -115,8 +197,8 @@ def move_mouse(
     # An objective measurement of mouse movement length that works regardless of screen res or aspect ratios.
     movement_distance_to_screen_res_ratio = mouse_movement_straight_line_distance / screen_resolution_hypotenuse
 
-    
-    # Logamrithmic backoff on how much shorter distances back off on speed. 
+
+    # Logamrithmic backoff on how much shorter distances back off on speed.
     # While shorter pulls are often slower, the real-life scaling doesn't elegantly match 1:1 relative to distance.
     # So, backing off by a factor relative to the objective normalization value for distnace makes sense
     # But we want greatly control how much we increase the speed for short pulls. So ratio^0.1 for ex only slightly reduces the speed more. Using the raw ratio as a backoff looks even more goofy in the opposite direction. short moves become far too quick.
@@ -131,11 +213,11 @@ def move_mouse(
     # Find midpoint of the valid X,Y area to randomly select p points from. (truncates 1 pixel for odd-valued pixel ranges - sue me ;))
     midpoint_x = (start_x + dest_x) // 2
     midpoint_y = (start_y + dest_y) // 2
-    
+
     # Creates a "general floor" for radius_x/radius_y. Each is ~distance/2 * cos/sin(theta), so near-perpendicular
     # angles shrink that axis's radius toward zero (perfectly vertical/horizontal being the extreme case).
     # A floor smooths this out continuously rather than branching on the exact edge case.
-    min_radius = max(int(screen_resolution_hypotenuse * 0.015), int(mouse_movement_straight_line_distance * 0.1))
+    min_radius = max(int(round(screen_resolution_hypotenuse * 0.015)), int(mouse_movement_straight_line_distance * 0.14))
 
     radius_x = max(min_radius, abs(start_x - midpoint_x))
     radius_y = max(min_radius, abs(start_y - midpoint_y))
@@ -147,11 +229,11 @@ def move_mouse(
     intermediate_p = clamped_gauss_randint(1, max_intermediate_p, sigmas_to_edge=2.5, bias=-0.5) # high magnets rare but possible.
 
     # Create correct amount of random points. (indexing at 1 feels more 'true' to the algorithm)
-    for point in range(1, intermediate_p + 1): 
+    for point in range(1, intermediate_p + 1):
         random_x, random_y = randomize_coordinate_within_range(midpoint_x, midpoint_y, radius_x, radius_y, sigmas_to_edge_x=2, sigmas_to_edge_y=2)
         random_point = np.array([random_x, random_y])
         p_array.append(random_point)
-        
+
     # append p_final to array.
     p_final = np.array([dest_x, dest_y])
     p_array.append(p_final)
@@ -165,32 +247,30 @@ def move_mouse(
     if speed_scalar > 1.0:
         speed_scalar = 1.0 + (speed_multiplier / 10)
 
-    # Compute initial curve before overshoot.
+    # Compute initial curve before overshoot, including possible mid-curve magnet rerolls.
     full_curve = _apply_mouse_jitter_filter(
-        __compute_de_casteljau_curve(total_steps, p_array),
-        movement_distance_to_screen_res_ratio, 
+        __compute_de_casteljau_curve_with_rerolls(total_steps, p_array, min_radius),
+        movement_distance_to_screen_res_ratio,
         jitter_intensity=jitter_intensity,
         speed_scalar=speed_scalar
   )
 
-    # if very short distance with respect to speed, or very low speed, no overshoot. 
-    
+    # if very short distance with respect to speed, or very low speed, no overshoot.
+
     if speed_scalar <= 0.05 or (movement_distance_to_screen_res_ratio * speed_scalar < 0.02):
         with _mouse_lock:
-            for point in full_curve:
-                set_cursor_position(point[0], point[1])
-                time.sleep(mouse_polling_sleep_time)
+            __run_mouse_movement_curve(full_curve, mouse_hz, friction, screen_resolution_hypotenuse)
         return
-    
+
 
     # Compute total overshoot points.
     overshoot_points = min(4, max(1, round(movement_distance_to_screen_res_ratio * speed_scalar * 4)))
 
 
     for i in range(1, overshoot_points + 1):
-        # t > 1.0. Technically, doing this is out of the algorithm's intended scope. 
+        # t > 1.0. Technically, doing this is out of the algorithm's intended scope.
         # But going past 1.0 allows us to overshoot our destination naturally without computing any angles.
-        t = (total_steps + (total_steps * (i/(130 / speed_scalar)))) / total_steps 
+        t = (total_steps + (total_steps * (i/(130 / speed_scalar)))) / total_steps
         point_at_t = _de_casteljau(t, p_array)
         full_curve.append(point_at_t)
 
@@ -203,26 +283,20 @@ def move_mouse(
 
     # Compute correction curve.
     correction_curve_total_steps = max(1, overshoot_points - 1)
-    correction_curve = __compute_de_casteljau_curve( correction_curve_total_steps, correction_p_array)
+    correction_curve = __compute_de_casteljau_curve(correction_curve_total_steps, correction_p_array)
 
     with _mouse_lock:
-        for point in full_curve:
-            set_cursor_position(point[0], point[1])
-            time.sleep(mouse_polling_sleep_time)
+        __run_mouse_movement_curve(full_curve, mouse_hz, friction, screen_resolution_hypotenuse)
 
         # Hold overshoot.
         rsleep(0.015, 0.035)
 
         # Correct back.
-        for point in correction_curve:
-            set_cursor_position(point[0], point[1])
-            time.sleep(mouse_polling_sleep_time)
+        __run_mouse_movement_curve(correction_curve, mouse_hz, friction, screen_resolution_hypotenuse)
 
 
-# WIP - to be implemented "soon"
-# Implementing mouse "snagging" - makes the teleportion to each point in the curve loop more complex.
-# Making this into its own private function making the code far more readable, as it's used in three places in move_mouse()
-def __run_mouse_movement_curve(curve: np.ndarray, mouse_hz: int, friction: float, screen_resolution_hypotanuse: float) -> None:
+# Runs generated curves while optionally simulating brief friction-based snags.
+def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction: float, screen_resolution_hypotenuse: float) -> None:
 
     mouse_polling_sleep_time = 1 / mouse_hz
     prev_point = np.array(get_cursor_position())
@@ -230,20 +304,34 @@ def __run_mouse_movement_curve(curve: np.ndarray, mouse_hz: int, friction: float
     curve_length = len(curve)
     snag_step_cutoff = curve_length - 6 # If past snag cutoff, we lockout snag.
     snag_cycles = 0
+    snag_cycles_cooldown = 0 # Cooldown for how many cycles we must complete before allowing snag again.
 
     for i in range(0, curve_length):
-            point = curve[i]
-            local_speed = np.linalg.norm(point - prev_point) / (mouse_polling_sleep_time * screen_resolution_hypotanuse)
+        additional_snag_sleep_time = 0.0
+        point = np.asarray(curve[i])
+        local_speed = np.linalg.norm(point - prev_point) / (mouse_polling_sleep_time * screen_resolution_hypotenuse)
         
-            if i < snag_step_cutoff and not snag_cycles:
-                snag_cycles = __calc_snag_chance(friction, local_speed) # Can still roll 0.
-            
-            if not snag_cycles:
-                set_cursor_position(point[0], point[1])
-            else: 
-                snag_cycles -= 1
-            time.sleep(mouse_polling_sleep_time) # Sleep regardless of if we're skipping a cycle or not.
+        if i < snag_step_cutoff and not snag_cycles and not snag_cycles_cooldown:
+            snag_cycles = __calc_snag_chance(friction, local_speed) # Can still roll 0.
+             
+        if not snag_cycles:
+            set_cursor_position(point[0], point[1])
             prev_point = point
+            if snag_cycles_cooldown:
+                snag_cycles_cooldown -= 1
+        else:
+            
+            # Additional "sleep" caused by the real time that the mouse spent 'snagging'
+            # Only do this once, at the end of snagging
+            if snag_cycles == 1:
+                additional_snag_sleep_time = clamped_gauss_randfloat(0.01, 0.08, bias=-0.5)
+                additional_snag_sleep_time = round(additional_snag_sleep_time / mouse_polling_sleep_time) * mouse_polling_sleep_time
+
+                # Prevent snag for several cycles, as objects that just escaped a state of friction-based 'snag' are typically moving quick / less likely to snag immediately after
+                snag_cycles_cooldown = clamped_gauss_randint(3, 7)
+
+            snag_cycles -= 1
+        time.sleep(mouse_polling_sleep_time + additional_snag_sleep_time) # Sleep regardless of if we're skipping a cycle or not.
     return
 
 # Friction default val = 5. Returns 0 (no snag) the vast majority of the time.
@@ -255,8 +343,9 @@ def __calc_snag_chance(friction: float, local_speed: float) -> int:
     # High speed or low friction → large sigmas_to_edge → distribution pinched at 0 → rarely snags.
     # Low speed or high friction → small sigmas_to_edge → wide spread → non-zero abs() values → snags.
     # 400 is a tuning knob: raise it to snag less overall, lower it to snag more.
-    sigmas_to_edge = max(1.0, local_speed * 400.0 / friction)
-    return abs(clamped_gauss_randint(-5, 5, sigmas_to_edge=sigmas_to_edge))
+    sigmas_to_edge = max(1.0, local_speed * 250.0 / friction)
+    snag_cycles = abs(clamped_gauss_randint(-5, 5, sigmas_to_edge=sigmas_to_edge))
+    return (snag_cycles + 1) // 2
 
 def _apply_mouse_jitter_filter(full_curve: list[np.ndarray], movement_distance_to_screen_res_ratio: float, jitter_intensity: int = 10, speed_scalar: float = 1.0) -> list[np.ndarray]:
     """Applies small 'handshake' position offsets the *every* point of the mouse movement curve."""
@@ -264,26 +353,29 @@ def _apply_mouse_jitter_filter(full_curve: list[np.ndarray], movement_distance_t
     # Don't this to final pt in curve, could cause misclicks
     noise_filtered_curve = []
 
-    # Note that first index takes the slope of the full curve as if it were a straight path to dst due to math on [i-1] as the second index. [0-1] resolves to the last element which is the destination point. It wont give us an index out of range error because python interpretter is a homie, but it could produce results that are unintended. But who cares its a few pixels on 1 point. Maybe even the intent of the direction on that first point makes sense to use? we're intending to land at the final dest so that angle maybe makes sense. That said, arctan2() uses signed ints and going doing it from [0] to [-1] could inadvertently reverse the direction of the angle. We could explicitly catch this and flip the angle of the first point only if so?
-
     # Dont round until after we apply arctan.
     max_jitter = max(1, movement_distance_to_screen_res_ratio * jitter_intensity * speed_scalar)
 
-    for i in range(0, len(full_curve) - 1): # holy shit thats maybe off by 1 lol
+    for i in range(0, len(full_curve) - 1):
 
         # dont take abs() on dy / dx, arctan2 needs signed int for directions.
-        dy = full_curve[i][1] - full_curve[i-1][1]
-        dx = full_curve[i][0] - full_curve[i-1][0]
+        if i == 0:
+            dy = full_curve[1][1] - full_curve[0][1]
+            dx = full_curve[1][0] - full_curve[0][0]
+        else:
+            dy = full_curve[i][1] - full_curve[i-1][1]
+            dx = full_curve[i][0] - full_curve[i-1][0]
         theta = np.arctan2(dy, dx) # Inverse tanget to get angle.
 
-        # Multiply max jitter * sin(theta) | cos(theta).
-        # we could be math purists and say "no horizontal noise if we're traving perfectly left/right" (angle-zeroing), but allowing at least 1 pixel bakes in some nice & subtle speed randomization to the curve itself.
-        max_jitter_x = max(1, int(round(max_jitter * np.sin(theta)))) 
-        max_jitter_y = max(1, int(round(max_jitter * np.cos(theta))))
+        # Swap sin/cos to orient most jitter perpendicular to travel. These are
+        # radii, so direction comes from sampling around the point, not their sign.
+        # The one-pixel floor also adds slight along-path speed variation.
+        max_jitter_x = max(1, int(round(abs(max_jitter * np.sin(theta)))))
+        max_jitter_y = max(1, int(round(abs(max_jitter * np.cos(theta)))))
 
         # Tighter gaussian grouping than most calls. Pixel offsets >= 2 should be rare. 
         sigmas_to_edge = 3.5
-        filtered_point = randomize_coordinate_within_range(full_curve[i][0], full_curve[i][1], max_jitter_x, max_jitter_y, sigmas_to_edge_x=sigmas_to_edge, sigmas_to_edge_y=sigmas_to_edge)
+        filtered_point = np.array(randomize_coordinate_within_range(full_curve[i][0], full_curve[i][1], max_jitter_x, max_jitter_y, sigmas_to_edge_x=sigmas_to_edge, sigmas_to_edge_y=sigmas_to_edge))
         noise_filtered_curve.append(filtered_point)
 
     # Add last point unfiltered. As promised 3000 processor instructions ago. 
@@ -332,12 +424,12 @@ def randomize_coordinate_within_range(
 
 # Less typing for when X == Y.
 def randomize_coordinate_within_square(
-    x: int, y: int, radius: int,
+    x: int, radius: int,
     sigmas_to_edge: float = 3,
     bias_x: float = 0.0, bias_y: float = 0.0,
 ) -> tuple[int, int]:
     return randomize_coordinate_within_range(
-        x, y, radius, radius,
+        x, x, radius, radius,
         sigmas_to_edge_x=sigmas_to_edge, sigmas_to_edge_y=sigmas_to_edge,
         bias_x=bias_x, bias_y=bias_y,
     )
