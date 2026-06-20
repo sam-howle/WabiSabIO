@@ -110,7 +110,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   | [`type_string(input_string)`](#type-string) | Types the supplied string character by character with human-like inter-key delays. Handles shift-required characters and special keys (`\n`, `\t`, `\b`) automatically |
   | [`toggle_key_preflight_check()`](#toggle-key-preflight-check) | Ensures toggle keys (CapsLock, ScrollLock, NumLock) are in the desired state before automation begins. Defaults to all off. |
   | [`randomize_coordinate_within_range(x, y, radius_x, radius_y)`](#coordinate-randomization) | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` and an `x` and `y` radius (total pixels from center on each axis) |
-  | [`randomize_coordinate_within_square(x, y, radius)`](#coordinate-randomization) | Same as `randomize_coordinate_within_range()`, but for square-shaped UI elements where `x` and `y` radii are equal |
+  | [`randomize_coordinate_within_square(x, radius)`](#coordinate-randomization) | Same as `randomize_coordinate_within_range()`, but uses `x` for both center coordinates and one shared radius |
   | [`clamped_gauss_randint(min_int, max_int)`](#statistical-primitives) | Returns a gaussian-distributed random integer clamped to `[min_int, max_int]`. Center values are more probable than edge values |
   | [`clamped_gauss_randfloat(min_val, max_val)`](#statistical-primitives) | Same as `clamped_gauss_randint()`, but returns a float |
   | [`start_jitter()`](#idle-mouse-behavior) | Causes the mouse cursor to periodically jitter 1-3 pixels, simulating a human hand resting on a mouse. Shares a mutex with `move_mouse()` and will not interfere with it. Resumes automatically after movement completes. Runs indefinitely until `stop_jitter()` is called |
@@ -124,7 +124,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   Mouse movement is performed using the `move_mouse()` function. It moves the cursor along a procedurally generated curve starting at the cursor's current position:
 
   ```python
-  move_mouse(dest_x, dest_y, speed_multiplier=1.0, mouse_hz=500, speed_sigmas_to_edge=3, speed_bias=0.0, jitter_intensity=10)
+  move_mouse(dest_x, dest_y, speed_multiplier=1.0, mouse_hz=500, speed_sigmas_to_edge=3, speed_bias=0.0, jitter_intensity=10, friction=5)
   ```
 
   ```python
@@ -142,6 +142,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   * **`speed_sigmas_to_edge`** `float` - Controls how tightly the randomized speed clusters around the center of the speed range. Higher values produce less variance. See [Statistical Primitives](#statistical-primitives) for a
   detailed explanation.
   * **`speed_bias`** `float` - Biases the randomized speed toward the faster or slower end of the range. Accepts values between `-1.0` (bias toward slow) and `1.0` (bias toward fast).
+  * **`friction`** `float` - Controls brief friction-based snags during movement. Higher values make snags more likely, particularly at lower local movement speeds. A snag briefly holds the cursor before it skips forward along the generated curve. Defaults to `5`; pass `0` or a negative value to disable snagging.
 
 ### Mouse Clicks
 
@@ -379,7 +380,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   ```python
   randomize_coordinate_within_range(x, y, radius_x, radius_y, sigmas_to_edge_x=3, sigmas_to_edge_y=3, bias_x=0.0, bias_y=0.0)
-  randomize_coordinate_within_square(x, y, radius, sigmas_to_edge=3, bias_x=0.0, bias_y=0.0)
+  randomize_coordinate_within_square(x, radius, sigmas_to_edge=3, bias_x=0.0, bias_y=0.0)
   ```
 
   ```python
@@ -388,13 +389,13 @@ The following table provides a brief overview of the functions exposed by `wabis
   move_mouse(x, y)
   left_click()
 
-  # Same, but for a square element
-  x, y = randomize_coordinate_within_square(500, 300, 30)
+  # Randomize within a square centered at (500, 500)
+  x, y = randomize_coordinate_within_square(500, 30)
   move_mouse(x, y)
   left_click()
   ```
 
-  `randomize_coordinate_within_square()` is a convenience wrapper for `randomize_coordinate_within_range()` for square-shaped elements where the `x` and `y` radii are equal.
+  `randomize_coordinate_within_square()` is a convenience wrapper for `randomize_coordinate_within_range()` for square-shaped areas centered at `(x, x)`, where the `x` and `y` radii are equal.
 
   #### Optional parameters
 
