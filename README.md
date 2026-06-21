@@ -4,6 +4,7 @@
 `wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features center-biased coordinate and timing randomization, curved mouse movement, destination overshoot and correction, and idle mouse jitter to model the small imperfections that naturally emerge during human interaction.
 
 <img src="https://raw.githubusercontent.com/sam-howle/WabiSabIO/main/demo.gif" width="320">
+<br><br>
 <sub><i>*Fire hydrant image recognition module sold separately.</i></sub>
 
 ## Introduction
@@ -110,7 +111,7 @@ The following table provides a brief overview of the functions exposed by `wabis
   | [`type_string(input_string)`](#type-string) | Types the supplied string character by character with human-like inter-key delays. Handles shift-required characters and special keys (`\n`, `\t`, `\b`) automatically |
   | [`toggle_key_preflight_check()`](#toggle-key-preflight-check) | Ensures toggle keys (CapsLock, ScrollLock, NumLock) are in the desired state before automation begins. Defaults to all off. |
   | [`randomize_coordinate_within_range(x, y, radius_x, radius_y)`](#coordinate-randomization) | Returns a gaussian-randomized `(x, y)` screen coordinate based on a center pixel `(x, y)` and an `x` and `y` radius (total pixels from center on each axis) |
-  | [`randomize_coordinate_within_square(x, radius)`](#coordinate-randomization) | Same as `randomize_coordinate_within_range()`, but uses `x` for both center coordinates and one shared radius |
+  | [`randomize_coordinate_within_square(x, y, radius)`](#coordinate-randomization) | Same as `randomize_coordinate_within_range()`, but uses `x` for both center coordinates and one shared radius |
   | [`clamped_gauss_randint(min_int, max_int)`](#statistical-primitives) | Returns a gaussian-distributed random integer clamped to `[min_int, max_int]`. Center values are more probable than edge values |
   | [`clamped_gauss_randfloat(min_val, max_val)`](#statistical-primitives) | Same as `clamped_gauss_randint()`, but returns a float |
   | [`start_jitter()`](#idle-mouse-behavior) | Causes the mouse cursor to periodically jitter 1-3 pixels, simulating a human hand resting on a mouse. Shares a mutex with `move_mouse()` and will not interfere with it. Resumes automatically after movement completes. Runs indefinitely until `stop_jitter()` is called |
@@ -380,7 +381,7 @@ The following table provides a brief overview of the functions exposed by `wabis
 
   ```python
   randomize_coordinate_within_range(x, y, radius_x, radius_y, sigmas_to_edge_x=3, sigmas_to_edge_y=3, bias_x=0.0, bias_y=0.0)
-  randomize_coordinate_within_square(x, radius, sigmas_to_edge=3, bias_x=0.0, bias_y=0.0)
+  randomize_coordinate_within_square(x, y, radius, sigmas_to_edge=3, bias_x=0.0, bias_y=0.0)
   ```
 
   ```python
