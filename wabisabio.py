@@ -308,21 +308,31 @@ def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction:
     snag_step_cutoff = curve_length - 6 # If past snag cutoff, we lockout snag.
     snag_cycles = 0
     snag_cycles_cooldown = 0 # Cooldown for how many cycles we must complete before allowing snag again.
-    snag_probability_multiplier = 1.0
+    total_snags = 0
 
     for i in range(0, curve_length):
         additional_snag_sleep_time = 0.0
         point = np.asarray(curve[i])
         local_speed = np.linalg.norm(point - prev_point) / (mouse_polling_sleep_time * screen_resolution_hypotenuse)
         
+        # If mouse snag conditions met.
         if i < snag_step_cutoff and not snag_cycles and not snag_cycles_cooldown:
             candidate_snag_cycles = __calc_snag_chance(friction, local_speed) # Can still roll 0.
 
-            # random.random() ret's uniform 0-1 float. 
-            # Idea is: the and statement sort of works as an additional 'gate' for the probability. 
+            # Prior snags strongly suppress later slow-speed candidates while
+            # having less effect on candidates produced at higher local speeds.
+            normalized_speed = min(1.0, local_speed / 0.5)
+            snag_backoff = 0.4 + 0.5 * normalized_speed ** 2
+            
+            
+            speed_snag_backoff_multiplier = 1 / max(0.33, normalized_speed) # Goes in the exponent of the next line, lower local speeds cause higher backoffs. 
+            snag_probability_multiplier = snag_backoff ** (total_snags * speed_snag_backoff_multiplier)
+
+            
+            # further reduces chance of snag for subsequent positive rolls. 
             if candidate_snag_cycles and random.random() < snag_probability_multiplier:
                 snag_cycles = candidate_snag_cycles
-                snag_probability_multiplier *= 0.9 # Diminishing backoff.
+                total_snags += 1
              
         if not snag_cycles:
             set_cursor_position(point[0], point[1])
@@ -338,7 +348,7 @@ def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction:
                 additional_snag_sleep_time = round(additional_snag_sleep_time / mouse_polling_sleep_time) * mouse_polling_sleep_time
 
                 # Prevent snag for several cycles, as objects that just escaped a state of friction-based 'snag' are typically moving quick / less likely to snag immediately after
-                snag_cycles_cooldown = clamped_gauss_randint(3, 7)
+                snag_cycles_cooldown = clamped_gauss_randint(7, 10)
 
             snag_cycles -= 1
         time.sleep(mouse_polling_sleep_time + additional_snag_sleep_time) # Sleep regardless of if we're skipping a cycle or not.
@@ -352,8 +362,8 @@ def __calc_snag_chance(friction: float, local_speed: float) -> int:
         return 0
     # High speed or low friction == large sigmas_to_edge == distribution pinched at 0 == rarely snags.
     # Low speed or high friction == small sigmas_to_edge == wide spread == -> snags.
-    # 400 is a tuning knob: raise it to snag less overall, lower it to snag more.
-    sigmas_to_edge = max(1.0, local_speed * 250.0 / friction)
+    # 250 is like a tuning knob, raise it to snag less overall.
+    sigmas_to_edge = max(11.0, local_speed * 250.0 / friction)
     snag_cycles = abs(clamped_gauss_randint(-5, 5, sigmas_to_edge=sigmas_to_edge))
     return (snag_cycles + 1) // 2
 
@@ -414,7 +424,10 @@ def clamped_gauss_randfloat(min_val: float, max_val: float, sigmas_to_edge: floa
     # value = random.gauss(mean, std_dev)
     # value = max(min_val, min(max_val, value))
 
+    
     value = random.gauss(mean, std_dev)
+
+    # If value outside of clamped range, reroll until it is.
     while not (min_val <= value <= max_val):
         value = random.gauss(mean, std_dev)
 
@@ -432,14 +445,14 @@ def randomize_coordinate_within_range(
     return randomized_x, randomized_y
 
 
-# Less typing for when X == Y.
+# Less typing for when radius_x == radius_y.
 def randomize_coordinate_within_square(
-    x: int, radius: int,
+    x: int, y: int, radius: int,
     sigmas_to_edge: float = 3,
     bias_x: float = 0.0, bias_y: float = 0.0,
 ) -> tuple[int, int]:
     return randomize_coordinate_within_range(
-        x, x, radius, radius,
+        x, y, radius, radius,
         sigmas_to_edge_x=sigmas_to_edge, sigmas_to_edge_y=sigmas_to_edge,
         bias_x=bias_x, bias_y=bias_y,
     )
