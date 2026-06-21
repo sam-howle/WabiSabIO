@@ -95,9 +95,9 @@ def __compute_de_casteljau_curve_with_rerolls(total_steps: int, points_array: li
     # 1 / reroll_chance_denominator is the chance that each individual step can result in a reroll.
     # Doing this in two steps for reability. The base denominator is (1 - initial_lockout - final_lockout) - or 1 in n where n is total steps where lockout isnt possible.
     # At base, the odds of this occuring at least once is ~63% (if we dont backoff odds of it happening twice)
-    # We will then tune that chance (likely down) in the subsequent line. This makes it easier to tune during deveopment.
+    # We will then tune that chance (likely down) in the subsequent line. This makes it more readable.
     base_reroll_chance_denominator = total_steps * 0.80 
-    reroll_chance_denominator = int(round( base_reroll_chance_denominator * 0.85)) # Further redunction of 15%.
+    reroll_chance_denominator = int(round( base_reroll_chance_denominator * 1.25)) # bigger denominator = lower base chance.
 
     # magnetic midpoints
     total_midpoints = len(points_array) - 2
@@ -115,7 +115,7 @@ def __compute_de_casteljau_curve_with_rerolls(total_steps: int, points_array: li
         # If outside lockout range.
         if step > initial_lockout and step < final_lockout:
             
-            # 1 in total reroll_chance_denominator
+            # If reroll. (1 in total reroll_chance_denominator)
             if random.randint(1, reroll_chance_denominator) == 1:
                 # set new p0 to current pos in curve.
                 current_point = _de_casteljau(t, points_array)
@@ -131,7 +131,10 @@ def __compute_de_casteljau_curve_with_rerolls(total_steps: int, points_array: li
                     np.abs(current_point - np.array([midpoint_x, midpoint_y])),
                 )
 
-                # Create correct amount of random points. (indexing at 1 feels more 'true' to the algorithm)
+                # Decrement midpoints. This will make reroll curves progressively less complex.
+                total_midpoints = max(1, total_midpoints - 1) 
+
+                # Create correct amount of random points.
                 for point in range(1, total_midpoints + 1): 
                     random_x, random_y = randomize_coordinate_within_range(midpoint_x, midpoint_y, radius_x, radius_y, sigmas_to_edge_x=2, sigmas_to_edge_y=2)
                     random_point = np.array([random_x, random_y])
@@ -151,7 +154,7 @@ def __compute_de_casteljau_curve_with_rerolls(total_steps: int, points_array: li
                 step_normalizer = step
 
                 # Every time we reroll points, make it less likely to occur again.
-                reroll_chance_denominator = int(round(reroll_chance_denominator * 1.6))
+                reroll_chance_denominator = int(round(reroll_chance_denominator * 1.35))
 
 
 
@@ -205,8 +208,8 @@ def move_mouse(
     distance_step_factor = movement_distance_to_screen_res_ratio ** 0.1
 
     # These constants look "pretty good" as a good default speed.
-    base_min_steps = 140 * distance_step_factor
-    base_max_steps = 224 * distance_step_factor
+    base_min_steps = 136 * distance_step_factor
+    base_max_steps = 217 * distance_step_factor
     # Total amount of points along the entire multi-curve path. Less steps = higher speed.
     total_steps = int(round(clamped_gauss_randint(base_min_steps, base_max_steps, sigmas_to_edge=speed_sigmas_to_edge, bias=speed_bias) / speed_multiplier * hz_normalization_multiplier))
 
@@ -295,7 +298,7 @@ def move_mouse(
         __run_mouse_movement_curve(correction_curve, mouse_hz, friction, screen_resolution_hypotenuse)
 
 
-# Runs generated curves while optionally simulating brief friction-based snags.
+# Runs mouse teleportion to curves..
 def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction: float, screen_resolution_hypotenuse: float) -> None:
 
     mouse_polling_sleep_time = 1 / mouse_hz
@@ -305,6 +308,7 @@ def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction:
     snag_step_cutoff = curve_length - 6 # If past snag cutoff, we lockout snag.
     snag_cycles = 0
     snag_cycles_cooldown = 0 # Cooldown for how many cycles we must complete before allowing snag again.
+    snag_probability_multiplier = 1.0
 
     for i in range(0, curve_length):
         additional_snag_sleep_time = 0.0
@@ -312,7 +316,13 @@ def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction:
         local_speed = np.linalg.norm(point - prev_point) / (mouse_polling_sleep_time * screen_resolution_hypotenuse)
         
         if i < snag_step_cutoff and not snag_cycles and not snag_cycles_cooldown:
-            snag_cycles = __calc_snag_chance(friction, local_speed) # Can still roll 0.
+            candidate_snag_cycles = __calc_snag_chance(friction, local_speed) # Can still roll 0.
+
+            # random.random() ret's uniform 0-1 float. 
+            # Idea is: the and statement sort of works as an additional 'gate' for the probability. 
+            if candidate_snag_cycles and random.random() < snag_probability_multiplier:
+                snag_cycles = candidate_snag_cycles
+                snag_probability_multiplier *= 0.9 # Diminishing backoff.
              
         if not snag_cycles:
             set_cursor_position(point[0], point[1])
@@ -340,15 +350,15 @@ def __run_mouse_movement_curve(curve: list[np.ndarray], mouse_hz: int, friction:
 def __calc_snag_chance(friction: float, local_speed: float) -> int:
     if friction <= 0:
         return 0
-    # High speed or low friction → large sigmas_to_edge → distribution pinched at 0 → rarely snags.
-    # Low speed or high friction → small sigmas_to_edge → wide spread → non-zero abs() values → snags.
+    # High speed or low friction == large sigmas_to_edge == distribution pinched at 0 == rarely snags.
+    # Low speed or high friction == small sigmas_to_edge == wide spread == -> snags.
     # 400 is a tuning knob: raise it to snag less overall, lower it to snag more.
     sigmas_to_edge = max(1.0, local_speed * 250.0 / friction)
     snag_cycles = abs(clamped_gauss_randint(-5, 5, sigmas_to_edge=sigmas_to_edge))
     return (snag_cycles + 1) // 2
 
 def _apply_mouse_jitter_filter(full_curve: list[np.ndarray], movement_distance_to_screen_res_ratio: float, jitter_intensity: int = 10, speed_scalar: float = 1.0) -> list[np.ndarray]:
-    """Applies small 'handshake' position offsets the *every* point of the mouse movement curve."""
+    """Applies small hand tremor position offsets the *every* point of the mouse movement curve."""
 
     # Don't this to final pt in curve, could cause misclicks
     noise_filtered_curve = []
