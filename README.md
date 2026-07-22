@@ -4,7 +4,7 @@
 `wabisabio` is an input automation Python library for Windows keyboard and mouse inputs with the specific goal of making inputs appear more human-like. The framework features center-biased coordinate and timing randomization, curved mouse movement, destination overshoot and correction, and idle mouse jitter to model the small imperfections that naturally emerge during human interaction.
 
 <img src="https://raw.githubusercontent.com/sam-howle/WabiSabIO/main/demo.gif" width="320">
-<br><br>
+
 <sub><i>*Fire hydrant image recognition module sold separately.</i></sub>
 
 ## Introduction
